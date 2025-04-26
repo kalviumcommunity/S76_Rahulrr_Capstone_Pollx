@@ -34,6 +34,28 @@ router.post('/', async (req, res) => {
   }
 });
 
+
+// PUT API
+router.put('/:id', async (req, res) => {
+  try {
+    const { question, options } = req.body;
+    const updatedPoll = await Poll.findByIdAndUpdate(
+      req.params.id,
+      { question, options },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedPoll) {
+      return res.status(404).json({ message: 'Poll not found' });
+    }
+
+    res.json(updatedPoll);
+  } catch (err) {
+    console.error('Error updating poll:', err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 module.exports = router;
 
 
