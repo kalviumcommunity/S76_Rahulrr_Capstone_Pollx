@@ -2,6 +2,20 @@ const express = require('express');
 const router = express.Router();
 const Poll = require('../models/Poll');
 
+
+//GET API
+
+router.get('/',async (req,res)=>{
+    try{
+        const polls = await Poll.find();
+        res.json(polls);
+    } catch (error) {
+        console.error('Error fetching polls:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+})
+
+
 // POST API 
 router.post('/', async (req, res) => {
   try {
@@ -21,3 +35,5 @@ router.post('/', async (req, res) => {
 });
 
 module.exports = router;
+
+
