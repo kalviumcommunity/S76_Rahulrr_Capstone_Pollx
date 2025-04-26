@@ -1,0 +1,24 @@
+meta {
+  name: put-polls
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:5000/polls/680cca37f6b1c8de19c072a9
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "question": "Your Updated Favorite Programming Language?",
+    "options": [
+      { "text": "Python" },
+      { "text": "JavaScript" },
+      { "text": "GoLang" },
+      { "text": "Rust" }
+    ]
+  }
+  
+}
