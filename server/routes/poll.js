@@ -3,7 +3,7 @@ const router = express.Router();
 const Poll = require('../models/Poll');
 
 
-//GET API
+// GET API
 
 router.get('/',async (req,res)=>{
     try{
