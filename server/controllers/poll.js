@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Poll = require('../models/Poll');
+const User = require('../models/User');
 
 
 // GET API
@@ -19,11 +20,17 @@ router.get('/',async (req,res)=>{
 // POST API 
 router.post('/', async (req, res) => {
   try {
-    const { question, options } = req.body;
+    const { question, options, userId } = req.body;
+//User 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     const newPoll = new Poll({
       question,
       options,
+       createdBy: userId,
     });
 
     const savedPoll = await newPoll.save();

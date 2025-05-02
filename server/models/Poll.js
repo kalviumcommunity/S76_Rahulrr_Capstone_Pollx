@@ -11,7 +11,12 @@ const pollSchema = new mongoose.Schema({
     required: true,
   },
   options: [optionSchema],
-  createdAt: {
+  createdBy: { 
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',  // refer User model
+    required: true,  
+  },
+    createdAt: {
     type: Date,
     default: Date.now,
   },

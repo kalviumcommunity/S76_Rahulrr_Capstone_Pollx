@@ -1,0 +1,24 @@
+meta {
+  name: users-polls
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:5000/polls
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "question": "Which OS you're using",
+    "options": [
+      { "text": "Mac" },
+      { "text": "Windows" },
+      { "text": "Linux" }
+    ],
+    "createdBy": "680e3319b82ee1e0c5da871f"  
+  }
+  
+}

@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const pollroutes = require('./routes/poll');
+const pollroutes = require('./controllers/poll');
+const userRoutes = require('./controllers/user');
 require('dotenv').config();
 
 const app = express();
@@ -9,6 +10,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 
 app.use('/polls', pollroutes);
+app.use('/users', userRoutes);
 
 app.get('/', (req, res) => {
 res.send('Backend server is Live!');    
