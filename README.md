@@ -51,3 +51,6 @@ PollX is a modern social polling platform where users can create, share, and eng
 
 ## Deployed Backend url
 https://s76-rahulrr-capstone-pollx.onrender.com
+
+# Deployed Frontend url
+https://pollx.netlify.app/
