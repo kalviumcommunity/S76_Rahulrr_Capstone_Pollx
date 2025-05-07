@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaPoll } from 'react-icons/fa';
 
 const Navbar = () => {
@@ -11,10 +12,10 @@ const Navbar = () => {
   return (
     <nav className="bg-black py-4 px-6 md:px-12 sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+        <Link to="/" className="flex items-center space-x-2">
           <FaPoll className="text-[#FF2D2D] text-2xl" />
           <span className="text-2xl font-bold text-white">Poll<span className="text-[#FF2D2D]">X</span></span>
-        </div>
+        </Link>
         
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-8">
@@ -25,12 +26,12 @@ const Navbar = () => {
         </div>
         
         <div className="hidden md:flex items-center space-x-4">
-          <button className="px-4 py-2 rounded hover:bg-[#2B2B2B] transition border border-white text-white">
+          <Link to="/login" className="px-4 py-2 rounded hover:bg-[#2B2B2B] transition border border-white text-white">
             Login
-          </button>
-          <button className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
+          </Link>
+          <Link to="/signup" className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
             Sign Up
-          </button>
+          </Link>
         </div>
         
         {/* Mobile menu button */}
@@ -55,12 +56,12 @@ const Navbar = () => {
           <a href="#categories" className="block text-white hover:text-[#FF2D2D] transition">Categories</a>
           <a href="#testimonials" className="block text-white hover:text-[#FF2D2D] transition">Testimonials</a>
           <div className="pt-2 space-y-2">
-            <button className="w-full px-4 py-2 rounded hover:bg-black transition border border-white text-white">
+            <Link to="/login" className="block w-full px-4 py-2 rounded hover:bg-black transition border border-white text-white text-center">
               Login
-            </button>
-            <button className="w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
+            </Link>
+            <Link to="/signup" className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center">
               Sign Up
-            </button>
+            </Link>
           </div>
         </div>
       )}
