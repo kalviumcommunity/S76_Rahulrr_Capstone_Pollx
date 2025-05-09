@@ -1,9 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; 
 import { motion } from 'framer-motion';
-import { FaCommentDots, FaShare } from 'react-icons/fa'; 
+import { FaCommentDots, FaShare } from 'react-icons/fa';
+
 const HeroSection = () => {
   return (
-    <section className="pt-20 pb-32 px-6 md:px-12 bg-gradient-to-b from-black to-[#2B2B2B]">
+    <section className="pt-[180px] pb-32 px-6 md:px-12 bg-gradient-to-b from-black to-[#2B2B2B]">
       <div className="container mx-auto flex flex-col md:flex-row items-center">
         <div className="md:w-1/2 mb-10 md:mb-0">
           <motion.h1 
@@ -28,15 +30,16 @@ const HeroSection = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4"
           >
-            <button className="px-8 py-3 bg-[#FF2D2D] text-white rounded-md font-medium hover:bg-red-700 transition shadow-lg">
+            <Link to="/signup" className="px-8 py-3 bg-[#FF2D2D] text-white rounded-md font-medium hover:bg-red-700 transition shadow-lg text-center">
               Create Your First Poll
-            </button>
-            <button className="px-8 py-3 border border-white rounded-md font-medium text-white hover:bg-white hover:text-[#2B2B2B] transition">
+            </Link>
+            <Link to="/login" className="px-8 py-3 border border-white rounded-md font-medium text-white hover:bg-white hover:text-[#2B2B2B] transition text-center">
               Explore Polls
-            </button>
+            </Link>
           </motion.div>
         </div>
         
+        {/* Poll card display - no changes needed */}
         <motion.div 
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -44,6 +47,8 @@ const HeroSection = () => {
           className="md:w-1/2"
         >
           <div className="relative">
+            {/* Poll card content */}
+            {/* ... (Rest of the component remains the same) ... */}
             <div className="bg-[#2B2B2B] border border-gray-700 rounded-lg p-6 shadow-2xl">
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-4 text-white">Which tech trend will dominate 2025?</h3>
@@ -99,6 +104,8 @@ const HeroSection = () => {
             <div className="absolute -bottom-4 -right-4 bg-[#2B2B2B] border border-gray-700 rounded-lg p-4 shadow-2xl transform rotate-6 z-[-1]"></div>
           </div>
         </motion.div>
+ 
+         
       </div>
     </section>
   );

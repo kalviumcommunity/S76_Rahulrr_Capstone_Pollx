@@ -1,22 +1,30 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const pollroutes = require('./controllers/poll');
-const userRoutes = require('./controllers/user');
-require('dotenv').config();
+require('dotenv').config({path:'./config/.env'});
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+const express =require('express');
+const cors =require('cors');
+const connectDB=require('./config/db.js')
+
+
+const authRoutes = require('./routes/routes');  
+
+const app =express();
+
+const PORT =process.env.PORT || 5000;
+
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
+
 
 app.use(express.json());
 
-app.use('/polls', pollroutes);
-app.use('/users', userRoutes);
+connectDB();
 
-app.get('/', (req, res) => {
-res.send('Backend server is Live!');    
-})
-mongoose.connect(process.env.MONGO_URI)
-.then(()=> console.log('MongoDB Connected'))
-.catch((err) => console.error('MongoDB Connection Error', err));
+app.use('/auth', authRoutes); 
 
-app.listen(PORT, () => console.log(`Server is running on port: http://localhost:${PORT}`));
+app.listen(PORT, () => {
+
+  console.log(`Server is running at http://localhost:${PORT}`)
+});
