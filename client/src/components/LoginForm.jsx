@@ -24,9 +24,9 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    
+        
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('http://localhost:5000/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ const LoginForm = () => {
       }
       
       // Save auth token to localStorage
-      localStorage.setItem('token', data.token);
+      // localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
       // Redirect to dashboard
