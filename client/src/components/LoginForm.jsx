@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FaPoll } from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc'; // Import Google icon
 import Button from './Button';
+import GoogleLoginButton from './GoogleLoginButton';
+import { login } from '../api/auth';
 
 const LoginForm = () => {
   const navigate = useNavigate();
@@ -21,50 +22,22 @@ const LoginForm = () => {
     });
   };
 
+  const location = useLocation();
+  const returnTo = location.state?.from || '/dashboard';
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
         
     try {
-      const response = await fetch('http://localhost:5000/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-        credentials: 'include',
-      });
+      const result = await login(formData);
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-      
-      // Save auth token to localStorage
-      // localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Redirect to dashboard
-      navigate('/dashboard');
+      // Redirect to dashboard or previous page
+      navigate(returnTo);
     } catch (err) {
-      setError(err.message || 'Failed to login. Please try again.');
+      setError(err.message || err.error || 'Failed to login. Please try again.');
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      // Implement your Google Sign-in logic here
-      // This would typically involve initiating OAuth flow with Google
-      window.location.href = 'http://localhost:5000/auth/google';
-      // Or use a Google OAuth library to handle the flow in the frontend
-    } catch (err) {
-      setError('Google login failed. Please try again.');
       setIsLoading(false);
     }
   };
@@ -87,14 +60,7 @@ const LoginForm = () => {
       )}
 
       {/* Google Login Button */}
-      <button 
-        onClick={handleGoogleLogin}
-        disabled={isLoading}
-        className="flex items-center justify-center w-full py-2 px-4 mb-4 bg-white text-gray-800 rounded border border-gray-300 hover:bg-gray-100 transition-colors"
-      >
-        <FcGoogle className="text-xl mr-2" />
-        Sign in with Google
-      </button>
+      <GoogleLoginButton />
       
       <div className="flex items-center my-4">
         <div className="flex-grow border-t border-gray-700"></div>
