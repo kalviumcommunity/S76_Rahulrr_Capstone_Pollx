@@ -4,6 +4,7 @@ const Joi = require('joi');
 const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const JWT_EXPIRY = '24h'; // Token expires in 24 hours
 
 const signupSchema = Joi.object({
     username: Joi.string().min(3).max(30).required(),
@@ -30,8 +31,16 @@ const signup = async (req, res) => {
         const user = new User({ username, email, password: hashedPassword });
         await user.save();
 
-        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token });
+        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+        
+        // Return user data with token
+        const userData = {
+            id: user._id,
+            username: user.username,
+            email: user.email
+        };
+        
+        res.json({ token, user: userData });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
@@ -50,8 +59,79 @@ const login = async (req, res) => {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
 
-        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, userId: user._id }); // Include userId in the response
+        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+        
+        // Return user data with token
+        const userData = {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            profilePicture: user.profilePicture
+        };
+        
+        res.json({ token, user: userData });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Handle Google authentication success
+const googleAuthSuccess = async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Authentication failed' });
+        }
+        
+        const user = req.user;
+        const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+        
+        // User data to return
+        const userData = {
+            id: user._id,
+            username: user.username,
+            email: user.email,
+            profilePicture: user.profilePicture
+        };
+        
+        // Redirect to frontend with token
+        res.redirect(`http://localhost:5173/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Handle Google authentication failure
+const googleAuthFailure = (req, res) => {
+    res.redirect('http://localhost:5173/login?error=google_auth_failed');
+};
+
+// Middleware to verify JWT token
+const verifyToken = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ error: 'Access denied. No token provided.' });
+    }
+    
+    try {
+        const verified = jwt.verify(token, JWT_SECRET);
+        req.user = verified;
+        next();
+    } catch (err) {
+        res.status(401).json({ error: 'Invalid token' });
+    }
+};
+
+// Get current user profile
+const getCurrentUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
@@ -61,4 +141,8 @@ const login = async (req, res) => {
 module.exports = {
     signup,
     login,
+    googleAuthSuccess,
+    googleAuthFailure,
+    verifyToken,
+    getCurrentUser
 };
