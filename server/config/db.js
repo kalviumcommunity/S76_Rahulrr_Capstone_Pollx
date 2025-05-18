@@ -4,11 +4,12 @@ require('dotenv').config({path:'./config/.env'});
 
 const connectDB = async () => {
     try {
+        // Add back the options as we're using an older version of Mongoose (5.x)
         await mongoose.connect(process.env.DB_URL, {
-            useNewUrlParser: true,          // Use new URL parser
-            useUnifiedTopology: true,       // Use new server discovery engine
-            useCreateIndex: true,           // Use createIndex instead of ensureIndex
-            useFindAndModify: false         // Use new findOneAndUpdate() and findOneAndDelete() 
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            useCreateIndex: true,
+            useFindAndModify: false
         });
         console.log('Database connected successfully');
     } catch (err) {
