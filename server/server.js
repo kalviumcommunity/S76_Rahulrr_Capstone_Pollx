@@ -1,11 +1,12 @@
-require('dotenv').config({ path: './config/.env' });
-
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+
+// Load environment variables first
+require('dotenv').config(); // This will load from server/.env
+
 const connectDB = require('./config/db.js');
-// Import passport
 const passport = require('passport');
 
 // Use dotenv to load environment variables from .env file
