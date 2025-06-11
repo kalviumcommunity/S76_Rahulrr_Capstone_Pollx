@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import PollCreationForm from '../components/PollCreationForm';
 import { getCurrentUser, logout } from '../api/auth';
 
 const Dashboard = () => {
@@ -9,6 +10,7 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showPollForm, setShowPollForm] = useState(false);
   
   useEffect(() => {
     const fetchUserData = async () => {
@@ -46,6 +48,14 @@ const Dashboard = () => {
     }
   };
   
+  const handleCreatePoll = () => {
+    setShowPollForm(true);
+  };
+
+  const handleClosePollForm = () => {
+    setShowPollForm(false);
+  };
+
   if (!user) return null; // or a loading spinner
   
   return (
@@ -75,7 +85,10 @@ const Dashboard = () => {
             <div className="p-4 border border-gray-700 rounded-lg">
               <h3 className="text-lg font-medium text-white mb-2">Create New Poll</h3>
               <p className="text-gray-400 mb-4">Start a new poll and share it with your audience.</p>
-              <button className="px-4 py-2 bg-[#FF2D2D] text-white rounded hover:bg-red-700">
+              <button 
+                onClick={handleCreatePoll}
+                className="px-4 py-2 bg-[#FF2D2D] text-white rounded hover:bg-red-700"
+              >
                 Create Poll
               </button>
             </div>
@@ -92,6 +105,11 @@ const Dashboard = () => {
       </main>
       
       <Footer />
+      
+      {/* Poll Creation Form Modal */}
+      {showPollForm && (
+        <PollCreationForm onClose={handleClosePollForm} />
+      )}
     </div>
   );
 };
