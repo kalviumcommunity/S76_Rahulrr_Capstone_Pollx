@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { isAuthenticated, verifyTokenWithServer } from '../api/auth';
+import { verifyTokenWithServer } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * A wrapper component that protects routes from unauthorized access
@@ -13,12 +14,11 @@ const ProtectedRoute = ({ children }) => {
     userChecked: false
   });
   const location = useLocation();
+  const { isLoggedIn } = useAuth();
 
   useEffect(() => {
-    // Check if user is authenticated (client-side check)
-    const authStatus = isAuthenticated();
-    
-    if (!authStatus) {
+    // First check if the user is logged in according to our context
+    if (!isLoggedIn) {
       setAuthState({
         isLoading: false,
         isAuthed: false,
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }) => {
       return;
     }
     
-    // If client-side check passes, verify with server
+    // If context shows logged in, verify with server
     const verifyAuth = async () => {
       try {
         // Use the more efficient token verification endpoint
@@ -48,7 +48,7 @@ const ProtectedRoute = ({ children }) => {
     };
     
     verifyAuth();
-  }, []);
+  }, [isLoggedIn]);
   
   if (authState.isLoading) {
     // Show loading state while checking authentication
@@ -73,7 +73,7 @@ const ProtectedRoute = ({ children }) => {
     );
   }
   
-  // If authenticated, render the protected component
+  // User is authenticated, render the protected content
   return children;
 };
 
