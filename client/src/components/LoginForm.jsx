@@ -4,9 +4,11 @@ import { FaPoll } from 'react-icons/fa';
 import Button from './Button';
 import GoogleLoginButton from './GoogleLoginButton';
 import { login } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
 const LoginForm = () => {
   const navigate = useNavigate();
+  const { updateAuthStatus } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,6 +34,9 @@ const LoginForm = () => {
         
     try {
       const result = await login(formData);
+      
+      // Update authentication context with the user data
+      updateAuthStatus(result.user);
       
       // Redirect to dashboard or previous page
       navigate(returnTo);

@@ -4,9 +4,11 @@ import { FaPoll } from 'react-icons/fa';
 import Button from './Button';
 import GoogleLoginButton from './GoogleLoginButton';
 import { register } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
 const SignupForm = () => {
   const navigate = useNavigate();
+  const { updateAuthStatus } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -39,7 +41,10 @@ const SignupForm = () => {
     try {
       // Use the register function from auth API
       const { username, email, password } = formData;
-      await register({ username, email, password });
+      const result = await register({ username, email, password });
+      
+      // Update authentication context with the user data
+      updateAuthStatus(result.user);
       
       // Registration successful, navigate to dashboard
       navigate('/dashboard');

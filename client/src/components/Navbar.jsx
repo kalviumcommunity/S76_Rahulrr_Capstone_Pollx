@@ -1,12 +1,24 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaPoll } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaPoll, FaUser } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isLoggedIn, currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+  
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
   
   return (
@@ -19,19 +31,50 @@ const Navbar = () => {
         
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center space-x-8">
-          <a href="#features" className="text-white hover:text-[#FF2D2D] transition">Features</a>
-          <a href="#how-it-works" className="text-white hover:text-[#FF2D2D] transition">How It Works</a>
-          <a href="#categories" className="text-white hover:text-[#FF2D2D] transition">Categories</a>
-          <a href="#testimonials" className="text-white hover:text-[#FF2D2D] transition">Testimonials</a>
+          {isLoggedIn ? (
+            // Navigation items for logged-in users
+            <>
+              <Link to="/dashboard" className="text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
+              <Link to="/my-polls" className="text-white hover:text-[#FF2D2D] transition">My Polls</Link>
+              <Link to="/create-poll" className="text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
+            </>
+          ) : (
+            // Navigation items for visitors
+            <>
+              <a href="#features" className="text-white hover:text-[#FF2D2D] transition">Features</a>
+              <a href="#how-it-works" className="text-white hover:text-[#FF2D2D] transition">How It Works</a>
+              <a href="#categories" className="text-white hover:text-[#FF2D2D] transition">Categories</a>
+              <a href="#testimonials" className="text-white hover:text-[#FF2D2D] transition">Testimonials</a>
+            </>
+          )}
         </div>
         
         <div className="hidden md:flex items-center space-x-4">
-          <Link to="/login" className="px-4 py-2 rounded hover:bg-[#2B2B2B] transition border border-white text-white">
-            Login
-          </Link>
-          <Link to="/signup" className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
-            Sign Up
-          </Link>
+          {isLoggedIn ? (
+            // User profile and logout for logged-in users
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-white">
+                <FaUser className="text-[#FF2D2D]" />
+                <span>{currentUser?.username || 'User'}</span>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            // Login and signup for visitors
+            <>
+              <Link to="/login" className="px-4 py-2 rounded hover:bg-[#2B2B2B] transition border border-white text-white">
+                Login
+              </Link>
+              <Link to="/signup" className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
         
         {/* Mobile menu button */}
@@ -51,18 +94,42 @@ const Navbar = () => {
       {/* Mobile menu */}
       {isMenuOpen && (
         <div className="mt-4 md:hidden bg-[#2B2B2B] py-4 px-6 space-y-4 rounded-lg">
-          <a href="#features" className="block text-white hover:text-[#FF2D2D] transition">Features</a>
-          <a href="#how-it-works" className="block text-white hover:text-[#FF2D2D] transition">How It Works</a>
-          <a href="#categories" className="block text-white hover:text-[#FF2D2D] transition">Categories</a>
-          <a href="#testimonials" className="block text-white hover:text-[#FF2D2D] transition">Testimonials</a>
-          <div className="pt-2 space-y-2">
-            <Link to="/login" className="block w-full px-4 py-2 rounded hover:bg-black transition border border-white text-white text-center">
-              Login
-            </Link>
-            <Link to="/signup" className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center">
-              Sign Up
-            </Link>
-          </div>
+          {isLoggedIn ? (
+            // Mobile nav for logged-in users
+            <>
+              <Link to="/dashboard" className="block text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
+              <Link to="/my-polls" className="block text-white hover:text-[#FF2D2D] transition">My Polls</Link>
+              <Link to="/create-poll" className="block text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
+              <div className="pt-2 space-y-2">
+                <div className="flex items-center space-x-2 text-white">
+                  <FaUser className="text-[#FF2D2D]" />
+                  <span>{currentUser?.username || 'User'}</span>
+                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center"
+                >
+                  Logout
+                </button>
+              </div>
+            </>
+          ) : (
+            // Mobile nav for visitors
+            <>
+              <a href="#features" className="block text-white hover:text-[#FF2D2D] transition">Features</a>
+              <a href="#how-it-works" className="block text-white hover:text-[#FF2D2D] transition">How It Works</a>
+              <a href="#categories" className="block text-white hover:text-[#FF2D2D] transition">Categories</a>
+              <a href="#testimonials" className="block text-white hover:text-[#FF2D2D] transition">Testimonials</a>
+              <div className="pt-2 space-y-2">
+                <Link to="/login" className="block w-full px-4 py-2 rounded hover:bg-black transition border border-white text-white text-center">
+                  Login
+                </Link>
+                <Link to="/signup" className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center">
+                  Sign Up
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       )}
     </nav>

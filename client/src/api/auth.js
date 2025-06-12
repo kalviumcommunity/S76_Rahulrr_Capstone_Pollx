@@ -78,7 +78,24 @@ export const login = async (credentials) => {
 };
 
 export const googleLogin = () => {
-  window.location.href = `${API_URL}/auth/google`;
+  try {
+    // Store a timestamp to detect if redirect is taking too long
+    localStorage.setItem('google_auth_initiated', Date.now().toString());
+    
+    // Log for debugging
+    console.log('Initiating Google login, redirecting to:', `${API_URL}/auth/google`);
+    
+    // Redirect to Google auth endpoint
+    window.location.href = `${API_URL}/auth/google`;
+    
+    // Return true if redirection was initiated successfully
+    return true;
+  } catch (error) {
+    console.error('Error initiating Google login:', error);
+    // Remove the timestamp if there's an error
+    localStorage.removeItem('google_auth_initiated');
+    return false;
+  }
 };
 
 export const logout = async () => {
@@ -168,33 +185,78 @@ export const verifyTokenWithServer = async () => {
 
 // Handle the token from Google OAuth redirect
 export const handleAuthSuccess = (queryParams) => {
-  const params = new URLSearchParams(queryParams);
-  const token = params.get('token');
-  const userStr = params.get('user');
-  
-  if (token && userStr) {
+  // Check if we've already processed this auth request to prevent double processing
+  const authId = sessionStorage.getItem('last_processed_auth');
+  if (authId && authId === queryParams) {
+    console.log('Auth already processed, skipping duplicate processing');
+    
+    // Try to get user data from localStorage to return
     try {
-      const userObj = JSON.parse(decodeURIComponent(userStr));
-      
-      // Store the token with expiration time (24 hours)
-      const now = new Date();
-      const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-      
-      const tokenData = {
-        value: token,
-        expiry: expiry.toISOString()
-      };
-      
-      localStorage.setItem('token', JSON.stringify(tokenData));
-      localStorage.setItem('user', JSON.stringify(userObj));
-      
-      return { token, user: userObj };
-    } catch (err) {
-      console.error('Error parsing user data:', err);
-      return null;
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        return { token: 'cached', user: JSON.parse(userData) };
+      }
+    } catch (e) {
+      // If error retrieving from cache, continue with normal flow
     }
   }
-  return null;
+  
+  // Mark this authentication as processed
+  sessionStorage.setItem('last_processed_auth', queryParams);
+  console.log('Processing auth success with query params');
+  
+  // Clear any Google auth initiation flag
+  localStorage.removeItem('google_auth_initiated');
+  
+  try {
+    // Parse query parameters
+    const params = new URLSearchParams(queryParams);
+    const token = params.get('token');
+    const userStr = params.get('user');
+    
+    console.log('Token received:', token ? 'Yes' : 'No');
+    console.log('User data received:', userStr ? 'Yes' : 'No');
+    
+    if (!token || !userStr) {
+      console.error('Missing token or user data in authentication response');
+      return null;
+    }
+    
+    // Decode and parse the user JSON
+    let userObj;
+    try {
+      userObj = JSON.parse(decodeURIComponent(userStr));
+    } catch (jsonErr) {
+      console.error('Error parsing decoded user string:', jsonErr);
+      try {
+        // Try parsing without decoding as a fallback
+        userObj = JSON.parse(userStr);
+      } catch (err) {
+        console.error('Failed to parse user data:', err);
+        return null;
+      }
+    }
+    
+    if (!userObj || !userObj.id || !userObj.email) {
+      console.error('Invalid or incomplete user data');
+      return null;
+    }
+    
+    // Store the token with expiration time (24 hours)
+    const now = new Date();
+    const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    const tokenData = { value: token, expiry: expiry.toISOString() };
+    
+    // Store auth data
+    localStorage.setItem('token', JSON.stringify(tokenData));
+    localStorage.setItem('user', JSON.stringify(userObj));
+    
+    console.log('Authentication data stored successfully');
+    return { token, user: userObj };
+  } catch (err) {
+    console.error('Error processing auth success:', err);
+    return null;
+  }
 };
 
 // Check if token is expired
