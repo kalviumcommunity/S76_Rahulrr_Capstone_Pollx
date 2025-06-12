@@ -1,13 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { googleLogin } from '../api/auth';
 
 const GoogleLoginButton = ({ isSignUp = false }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [timeoutId, setTimeoutId] = useState(null);
+
+  // Clean up timeout when component unmounts
+  useEffect(() => {
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [timeoutId]);
+  
+  // Check if Google auth was initiated but not completed
+  useEffect(() => {
+    const authTimestamp = localStorage.getItem('google_auth_initiated');
+    if (authTimestamp) {
+      // Set loading state true if Google auth was recently initiated
+      const timestamp = parseInt(authTimestamp);
+      const now = Date.now();
+      if (now - timestamp < 30000) { // Within last 30 seconds
+        setIsLoading(true);
+        
+        // Set a timeout to reset the loading state
+        const id = setTimeout(() => {
+          setIsLoading(false);
+          localStorage.removeItem('google_auth_initiated');
+        }, 8000);
+        
+        setTimeoutId(id);
+      } else {
+        // Clear stale timestamp
+        localStorage.removeItem('google_auth_initiated');
+      }
+    }
+  }, []);
 
   const handleGoogleLogin = () => {
+    // Don't do anything if already loading
+    if (isLoading) return;
+    
+    // Clear any previous auth flags
+    sessionStorage.removeItem('auth_in_progress');
+    sessionStorage.removeItem('last_processed_auth');
+    
     setIsLoading(true);
-    googleLogin();
-    // Note: No need to reset loading state as we're navigating away
+    
+    try {
+      // Redirect to Google auth
+      googleLogin();
+      
+      // Set a timeout to reset loading state if Google auth takes too long
+      const id = setTimeout(() => {
+        console.log('Google auth is taking longer than expected, resetting loading state');
+        setIsLoading(false);
+      }, 8000);
+      
+      setTimeoutId(id);
+    } catch (err) {
+      console.error('Error initiating Google login:', err);
+      setIsLoading(false);
+    }
   };
 
   return (
