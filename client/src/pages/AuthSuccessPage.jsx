@@ -38,6 +38,8 @@ const AuthSuccessPage = () => {
         
         if (!result) {
           console.error('Authentication failed. No valid token received.');
+          console.log('Full URL:', window.location.href);
+          console.log('Search params:', location.search);
           setError('Authentication failed. No valid token received.');
           setStatus('Authentication failed');
           

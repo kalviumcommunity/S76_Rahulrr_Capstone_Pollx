@@ -84,11 +84,16 @@ export const googleLogin = () => {
     // Store a timestamp to detect if redirect is taking too long
     localStorage.setItem('google_auth_initiated', Date.now().toString());
     
+    // Get the backend URL based on environment
+    const backendURL = import.meta.env.PROD 
+      ? 'https://s76-rahulrr-capstone-pollx.onrender.com'
+      : 'http://localhost:5000';
+    
     // Log for debugging
-    console.log('Initiating Google login, redirecting to:', `${API_URL}/auth/google`);
+    console.log('Initiating Google login, redirecting to:', `${backendURL}/auth/google`);
     
     // Redirect to Google auth endpoint
-    window.location.href = `${API_URL}/auth/google`;
+    window.location.href = `${backendURL}/auth/google`;
     
     // Return true if redirection was initiated successfully
     return true;

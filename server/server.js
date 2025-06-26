@@ -23,8 +23,8 @@ if (missingEnvVars.length > 0) {
   process.exit(1);
 }
 
-console.log('✅ All required environment variables are loaded');
-console.log('🔧 Environment check:');
+console.log('All required environment variables are loaded');
+console.log('Environment check:');
 console.log('- GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
 console.log('- GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
 console.log('- GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
@@ -48,8 +48,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://pollx.netlify.app']
-    : 'http://localhost:5173',
+    ? ['https://pollx.netlify.app', 'https://s76-rahulrr-capstone-pollx.onrender.com']
+    : ['http://localhost:5173', 'http://localhost:5000'],
   credentials: true,
 }));
 
