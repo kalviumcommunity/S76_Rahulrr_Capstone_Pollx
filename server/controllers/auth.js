@@ -95,7 +95,10 @@ const googleAuthSuccess = async (req, res) => {
         };
         
         // Redirect to frontend with token
-        res.redirect(`http://localhost:5173/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`);
+        const frontendURL = process.env.NODE_ENV === 'production' 
+            ? 'https://pollx.netlify.app'
+            : 'http://localhost:5173';
+        res.redirect(`${frontendURL}/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
@@ -104,7 +107,10 @@ const googleAuthSuccess = async (req, res) => {
 
 // Handle Google authentication failure
 const googleAuthFailure = (req, res) => {
-    res.redirect('http://localhost:5173/login?error=google_auth_failed');
+    const frontendURL = process.env.NODE_ENV === 'production' 
+        ? 'https://pollx.netlify.app'
+        : 'http://localhost:5173';
+    res.redirect(`${frontendURL}/login?error=google_auth_failed`);
 };
 
 // Middleware to verify JWT token
