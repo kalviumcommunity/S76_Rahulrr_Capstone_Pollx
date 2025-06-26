@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-require('dotenv').config({path:'./config/.env'});
+// Environment variables are already loaded in server.js, no need to load again here
 
 const connectDB = async () => {
     try {
