@@ -2,27 +2,71 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import PollCard from './PollCard';
-import { FaPoll, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import socket from '../socket';
+import { FaPoll, FaSpinner, FaExclamationTriangle, FaFilter } from 'react-icons/fa';
 
 const PollFeed = () => {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   const API_URL = import.meta.env.PROD 
     ? 'https://s76-rahulrr-capstone-pollx.onrender.com'
     : 'http://localhost:5000';
 
+  const categories = ['All', 'Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'];
+
   useEffect(() => {
     fetchPolls();
+  }, [selectedCategory]);
+
+  // Real-time vote updates
+  useEffect(() => {
+    // Listen for vote updates
+    const handleVoteUpdate = (data) => {
+      console.log('Received vote update:', data);
+      setPolls(prevPolls => 
+        prevPolls.map(poll => 
+          poll._id === data.pollId ? data.poll : poll
+        )
+      );
+    };
+
+    socket.on('voteUpdated', handleVoteUpdate);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('voteUpdated', handleVoteUpdate);
+    };
   }, []);
+
+  // Real-time poll creation updates
+  useEffect(() => {
+    // Listen for new polls
+    const handlePollCreated = (data) => {
+      console.log('Received new poll:', data);
+      // Only add the poll if it matches the current category filter or if showing all categories
+      if (selectedCategory === 'All' || data.poll.category === selectedCategory) {
+        setPolls(prevPolls => [data.poll, ...prevPolls]);
+      }
+    };
+
+    socket.on('pollCreated', handlePollCreated);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('pollCreated', handlePollCreated);
+    };
+  }, [selectedCategory]);
 
   const fetchPolls = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const response = await axios.get(`${API_URL}/polls`);
+      const categoryParam = selectedCategory === 'All' ? '' : `?category=${selectedCategory}`;
+      const response = await axios.get(`${API_URL}/polls${categoryParam}`);
       // Handle both old and new response formats
       const pollsData = response.data.polls || response.data || [];
       setPolls(pollsData);
@@ -32,6 +76,10 @@ const PollFeed = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
   };
 
   const containerVariants = {
@@ -119,6 +167,44 @@ const PollFeed = () => {
                 • Updated just now
               </span>
             )}
+          </div>
+        </motion.div>
+
+        {/* Category Filter */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8"
+        >
+          <div className="flex items-center justify-center mb-4">
+            <FaFilter className="text-[#FF2D2D] mr-2" />
+            <span className="text-white font-medium">Filter by Category</span>
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {categories.map((category) => {
+              const getCategoryColor = (cat) => {
+                if (cat === 'All') return selectedCategory === cat ? 'bg-[#FF2D2D] text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-gray-700 border border-gray-600';
+                if (cat === 'Technology') return selectedCategory === cat ? 'bg-blue-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-blue-600/20 border border-blue-600/50';
+                if (cat === 'Sports') return selectedCategory === cat ? 'bg-green-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-green-600/20 border border-green-600/50';
+                if (cat === 'Entertainment') return selectedCategory === cat ? 'bg-purple-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-purple-600/20 border border-purple-600/50';
+                if (cat === 'Politics') return selectedCategory === cat ? 'bg-red-700 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-red-700/20 border border-red-700/50';
+                if (cat === 'Education') return selectedCategory === cat ? 'bg-indigo-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-indigo-600/20 border border-indigo-600/50';
+                if (cat === 'Health') return selectedCategory === cat ? 'bg-pink-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-pink-600/20 border border-pink-600/50';
+                if (cat === 'Business') return selectedCategory === cat ? 'bg-yellow-600 text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-yellow-600/20 border border-yellow-600/50';
+                return selectedCategory === cat ? 'bg-[#FF2D2D] text-white' : 'bg-[#2B2B2B] text-gray-300 hover:bg-gray-700 border border-gray-600';
+              };
+              
+              return (
+                <button
+                  key={category}
+                  onClick={() => handleCategoryChange(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${getCategoryColor(category)}`}
+                >
+                  {category}
+                </button>
+              );
+            })}
           </div>
         </motion.div>
 

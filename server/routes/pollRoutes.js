@@ -12,7 +12,7 @@ router.get('/', getAllPolls);
 // GET /polls/my-polls - Get polls created by authenticated user (protected route)
 router.get('/my-polls', ensureAuth, getUserPolls);
 
-// GET /polls/voted - Get polls that the authenticated user has voted on (protected route)
+// GET /polls/voted - Get polls that authenticated user has voted on (protected route)
 router.get('/voted', ensureAuth, getVotedPolls);
 
 // POST /polls/:pollId/vote - Vote on a poll (protected route)

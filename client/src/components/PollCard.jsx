@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaUser, FaClock, FaEdit, FaTrash, FaVoteYea, FaCheck, FaSpinner } from 'react-icons/fa';
+import { FaUser, FaClock, FaEdit, FaTrash, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-icons/fa';
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 
@@ -93,9 +93,28 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disable
     >
       {/* Poll Question */}
       <div className="mb-6">
-        <h3 className="text-xl font-bold mb-4 text-white leading-relaxed">
-          {localPoll.question}
-        </h3>
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-xl font-bold text-white leading-relaxed flex-1">
+            {localPoll.question}
+          </h3>
+          
+          {/* Category Badge */}
+          {localPoll.category && (
+            <span className={`ml-4 px-3 py-1 text-white text-xs font-medium rounded-full whitespace-nowrap flex items-center ${
+              localPoll.category === 'Technology' ? 'bg-blue-600' :
+              localPoll.category === 'Sports' ? 'bg-green-600' :
+              localPoll.category === 'Entertainment' ? 'bg-purple-600' :
+              localPoll.category === 'Politics' ? 'bg-red-700' :
+              localPoll.category === 'Education' ? 'bg-indigo-600' :
+              localPoll.category === 'Health' ? 'bg-pink-600' :
+              localPoll.category === 'Business' ? 'bg-yellow-600' :
+              'bg-[#FF2D2D]'
+            }`}>
+              <FaTag className="mr-1" />
+              {localPoll.category}
+            </span>
+          )}
+        </div>
         
         {/* Poll Options */}
         <div className="space-y-3">

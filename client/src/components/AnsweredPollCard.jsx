@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FaUser, FaClock, FaCheck } from 'react-icons/fa';
+import { FaUser, FaClock, FaCheck, FaTag } from 'react-icons/fa';
 
 const AnsweredPollCard = ({ poll }) => {
   const formatDate = (dateString) => {
@@ -41,9 +41,30 @@ const AnsweredPollCard = ({ poll }) => {
     >
       {/* Poll Question */}
       <div className="flex justify-between items-start mb-3">
-        <h3 className="text-white font-medium leading-relaxed flex-1 mr-4">
-          {poll.question}
-        </h3>
+        <div className="flex-1 mr-4">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-white font-medium leading-relaxed flex-1">
+              {poll.question}
+            </h3>
+            
+            {/* Category Badge */}
+            {poll.category && (
+              <span className={`ml-2 px-2 py-1 text-white text-xs font-medium rounded-full whitespace-nowrap flex items-center ${
+                poll.category === 'Technology' ? 'bg-blue-600' :
+                poll.category === 'Sports' ? 'bg-green-600' :
+                poll.category === 'Entertainment' ? 'bg-purple-600' :
+                poll.category === 'Politics' ? 'bg-red-700' :
+                poll.category === 'Education' ? 'bg-indigo-600' :
+                poll.category === 'Health' ? 'bg-pink-600' :
+                poll.category === 'Business' ? 'bg-yellow-600' :
+                'bg-[#FF2D2D]'
+              }`}>
+                <FaTag className="mr-1" />
+                {poll.category}
+              </span>
+            )}
+          </div>
+        </div>
         <div className="text-xs text-gray-400 whitespace-nowrap">
           {formatDate(poll.createdAt)}
         </div>

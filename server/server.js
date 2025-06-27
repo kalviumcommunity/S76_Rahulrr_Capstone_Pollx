@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
@@ -43,6 +45,30 @@ const authRoutes = require('./routes/routes');
 const pollRoutes = require('./routes/pollRoutes');
 
 const app = express();
+const server = http.createServer(app);
+
+// Configure Socket.IO with CORS
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173", 
+      "https://pollx.netlify.app",
+      "http://localhost:3000"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  // Add additional configuration for better reliability
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  transports: ['websocket', 'polling'],
+  reconnection: true,
+  reconnectionAttempts: 5,
+  reconnectionDelay: 1000
+});
+
+// Make io instance available globally
+app.set('io', io);
 
 const PORT = process.env.PORT || 5000;
 
@@ -119,12 +145,38 @@ passport.deserializeUser(async (id, done) => {
 app.use(passport.initialize());
 app.use(passport.session());
 
-connectDB();
-
 app.use('/auth', authRoutes);
 app.use('/polls', pollRoutes);
 
-app.listen(PORT, () => {
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+  
+  // Send a welcome event to the newly connected client
+  socket.emit('welcome', {
+    message: 'Connected to PollX server',
+    socketId: socket.id,
+    timestamp: new Date()
+  });
+  
+  // Listen for client-specific events
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+    console.log(`Socket ${socket.id} joined room: ${roomId}`);
+  });
+  
+  socket.on('leaveRoom', (roomId) => {
+    socket.leave(roomId);
+    console.log(`Socket ${socket.id} left room: ${roomId}`);
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
+connectDB();
+
+server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`)
 });

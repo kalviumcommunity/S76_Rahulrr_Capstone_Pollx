@@ -31,6 +31,12 @@ const pollSchema = new mongoose.Schema({
     ref: 'User',
     required: true,  
   },
+  category: {
+    type: String,
+    required: true,
+    enum: ['Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'],
+    default: 'Other'
+  },
   votedUsers: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 

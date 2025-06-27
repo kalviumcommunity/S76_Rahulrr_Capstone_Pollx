@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnsweredPollCard from '../components/AnsweredPollCard';
+import socket from '../socket';
 import { getCurrentUser, logout, getVotedPolls } from '../api/auth';
 import { FaSpinner, FaPoll } from 'react-icons/fa';
 
@@ -58,6 +59,42 @@ const Dashboard = () => {
       fetchVotedPolls();
     }
   }, [user]);
+
+  // Real-time vote updates for answered polls
+  useEffect(() => {
+    const handleVoteUpdate = (data) => {
+      console.log('Dashboard received vote update:', data);
+      setAnsweredPolls(prevPolls => 
+        prevPolls.map(poll => 
+          poll._id === data.pollId ? data.poll : poll
+        )
+      );
+    };
+
+    socket.on('voteUpdated', handleVoteUpdate);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('voteUpdated', handleVoteUpdate);
+    };
+  }, []);
+
+  // Real-time poll creation updates
+  useEffect(() => {
+    const handlePollCreated = (data) => {
+      console.log('Dashboard received new poll:', data);
+      // We don't need to do anything with this event in the Dashboard
+      // because new polls won't appear in the "Polls You Participated In" section
+      // until the user votes on them
+    };
+
+    socket.on('pollCreated', handlePollCreated);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('pollCreated', handlePollCreated);
+    };
+  }, []);
   
   const handleLogout = async () => {
     try {

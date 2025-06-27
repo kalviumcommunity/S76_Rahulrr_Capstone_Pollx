@@ -26,7 +26,8 @@ const CreatePoll = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     question: '',
-    options: ['', '']
+    options: ['', ''],
+    category: 'Other'
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -39,6 +40,13 @@ const CreatePoll = () => {
     });
     // Clear error when user starts typing
     if (error) setError('');
+  };
+
+  const handleCategoryChange = (e) => {
+    setFormData({
+      ...formData,
+      category: e.target.value
+    });
   };
 
   const handleOptionChange = (index, value) => {
@@ -108,7 +116,8 @@ const CreatePoll = () => {
     try {
       const pollData = {
         question: formData.question.trim(),
-        options: validOptions.map(option => option.trim())
+        options: validOptions.map(option => option.trim()),
+        category: formData.category
       };
       
       // Use the configured API instance instead of fetch
@@ -118,7 +127,8 @@ const CreatePoll = () => {
       setSuccess('Poll created successfully!');
       setFormData({
         question: '',
-        options: ['', '']
+        options: ['', ''],
+        category: 'Other'
       });
       
       // Navigate to dashboard after a brief delay
@@ -182,6 +192,30 @@ const CreatePoll = () => {
                 disabled={isLoading}
                 required
               />
+            </div>
+
+            {/* Category Selection */}
+            <div>
+              <label htmlFor="category" className="block text-gray-300 text-sm font-medium mb-2">
+                Category *
+              </label>
+              <select
+                id="category"
+                className="w-full px-4 py-3 bg-black text-white border border-gray-700 rounded-lg focus:outline-none focus:border-[#FF2D2D] focus:ring-1 focus:ring-[#FF2D2D] transition-colors"
+                value={formData.category}
+                onChange={handleCategoryChange}
+                disabled={isLoading}
+                required
+              >
+                <option value="Technology">Technology</option>
+                <option value="Sports">Sports</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Politics">Politics</option>
+                <option value="Education">Education</option>
+                <option value="Health">Health</option>
+                <option value="Business">Business</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
 
             {/* Options */}

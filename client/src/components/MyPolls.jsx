@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PollCard from './PollCard';
+import socket from '../socket';
 import { FaPoll, FaSpinner, FaPlus, FaExclamationTriangle } from 'react-icons/fa';
 
 const MyPolls = () => {
@@ -25,6 +26,52 @@ const MyPolls = () => {
     
     fetchMyPolls();
   }, [navigate]);
+
+  // Real-time vote updates
+  useEffect(() => {
+    const handleVoteUpdate = (data) => {
+      console.log('MyPolls received vote update:', data);
+      setPolls(prevPolls => 
+        prevPolls.map(poll => {
+          if (poll._id === data.pollId) {
+            const updatedPoll = data.poll;
+            // Recalculate total votes
+            updatedPoll.totalVotes = updatedPoll.options 
+              ? updatedPoll.options.reduce((total, option) => total + (option.votes || 0), 0) 
+              : 0;
+            return updatedPoll;
+          }
+          return poll;
+        })
+      );
+    };
+
+    socket.on('voteUpdated', handleVoteUpdate);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('voteUpdated', handleVoteUpdate);
+    };
+  }, []);
+
+  // Real-time poll creation updates
+  useEffect(() => {
+    const handlePollCreated = (data) => {
+      console.log('MyPolls received new poll:', data);
+      // Only add the poll if it belongs to the current user
+      const userId = JSON.parse(localStorage.getItem('user'))?.id;
+      if (userId && data.poll.createdBy && data.poll.createdBy._id === userId) {
+        setPolls(prevPolls => [data.poll, ...prevPolls]);
+      }
+    };
+
+    socket.on('pollCreated', handlePollCreated);
+
+    // Cleanup listener on unmount
+    return () => {
+      socket.off('pollCreated', handlePollCreated);
+    };
+  }, []);
 
   const fetchMyPolls = async () => {
     try {
