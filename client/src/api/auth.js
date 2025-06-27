@@ -290,3 +290,33 @@ export const refreshTokenIfNeeded = async () => {
     return false;
   }
 };
+
+// Add a comment to a poll
+export const addComment = async (pollId, text) => {
+  try {
+    const response = await api.post(`/polls/${pollId}/comments`, { text });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};
+
+// Get comments for a poll
+export const getComments = async (pollId, page = 1, limit = 10) => {
+  try {
+    const response = await api.get(`/polls/${pollId}/comments?page=${page}&limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};
+
+// Toggle heart on a comment
+export const toggleCommentHeart = async (pollId, commentId) => {
+  try {
+    const response = await api.post(`/polls/${pollId}/comments/${commentId}/heart`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};

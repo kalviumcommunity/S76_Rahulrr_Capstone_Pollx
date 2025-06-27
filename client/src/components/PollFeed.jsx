@@ -60,6 +60,51 @@ const PollFeed = () => {
     };
   }, [selectedCategory]);
 
+  // Real-time comment updates
+  useEffect(() => {
+    const handleCommentAdded = (data) => {
+      console.log('Received comment update:', data);
+      setPolls(prevPolls => 
+        prevPolls.map(poll => {
+          if (poll._id === data.pollId) {
+            return {
+              ...poll,
+              comments: poll.comments ? [...poll.comments, data.comment] : [data.comment]
+            };
+          }
+          return poll;
+        })
+      );
+    };
+
+    const handleCommentHearted = (data) => {
+      console.log('Received comment heart update:', data);
+      setPolls(prevPolls => 
+        prevPolls.map(poll => {
+          if (poll._id === data.pollId) {
+            return {
+              ...poll,
+              comments: poll.comments ? poll.comments.map(comment => 
+                comment._id === data.commentId 
+                  ? { ...comment, hearts: data.hearts, heartedBy: data.comment.heartedBy }
+                  : comment
+              ) : []
+            };
+          }
+          return poll;
+        })
+      );
+    };
+
+    socket.on('commentAdded', handleCommentAdded);
+    socket.on('commentHearted', handleCommentHearted);
+
+    return () => {
+      socket.off('commentAdded', handleCommentAdded);
+      socket.off('commentHearted', handleCommentHearted);
+    };
+  }, []);
+
   const fetchPolls = async () => {
     try {
       setLoading(true);

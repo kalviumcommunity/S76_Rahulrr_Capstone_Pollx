@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FaUser, FaClock, FaEdit, FaTrash, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-icons/fa';
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
+import CommentsSection from './CommentsSection';
 
 const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
@@ -273,6 +274,12 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disable
           )}
         </div>
       )}
+
+      {/* Comments Section */}
+      <CommentsSection 
+        pollId={localPoll._id} 
+        initialCommentCount={localPoll.comments?.length || 0}
+      />
     </motion.div>
   );
 };

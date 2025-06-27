@@ -11,6 +11,32 @@ const optionSchema = new mongoose.Schema({
   },
 });
 
+const commentSchema = new mongoose.Schema({
+  text: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 500
+  },
+  commentedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  hearts: {
+    type: Number,
+    default: 0
+  },
+  heartedBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
 const pollSchema = new mongoose.Schema({
   question: {
     type: String,
@@ -40,7 +66,8 @@ const pollSchema = new mongoose.Schema({
   votedUsers: [{ 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
-  }]
+  }],
+  comments: [commentSchema]
 }, {
   timestamps: true // This automatically adds createdAt and updatedAt
 });

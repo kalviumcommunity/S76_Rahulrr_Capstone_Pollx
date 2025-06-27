@@ -105,6 +105,7 @@ const getAllPolls = async (req, res) => {
     
     const polls = await Poll.find(filter)
       .populate('createdBy', 'username email')
+      .populate('comments.commentedBy', 'username email')
       .sort({ createdAt: -1 });
     
     res.json({
@@ -124,6 +125,7 @@ const getUserPolls = async (req, res) => {
   try {
     const polls = await Poll.find({ createdBy: req.user.id })
       .populate('createdBy', 'username email')
+      .populate('comments.commentedBy', 'username email')
       .sort({ createdAt: -1 });
     
     res.json({
@@ -143,6 +145,7 @@ const getVotedPolls = async (req, res) => {
   try {
     const polls = await Poll.find({ votedUsers: req.user.id })
       .populate('createdBy', 'username email')
+      .populate('comments.commentedBy', 'username email')
       .sort({ createdAt: -1 });
     
     res.json({
@@ -193,18 +196,28 @@ const votePoll = async (req, res) => {
       });
     }
 
-    // Add user to votedUsers array using $addToSet to avoid duplicates
-    // and increment vote count atomically
-    await Poll.findByIdAndUpdate(
-      pollId, 
+    // Use findOneAndUpdate with atomic operations to prevent race conditions
+    const updatedPoll = await Poll.findOneAndUpdate(
+      { 
+        _id: pollId,
+        votedUsers: { $ne: req.user.id } // Double-check user hasn't voted
+      },
       { 
         $inc: { [`options.${poll.options.indexOf(option)}.votes`]: 1 },
         $addToSet: { votedUsers: req.user.id }
+      },
+      { 
+        new: true,
+        runValidators: true
       }
-    );
+    ).populate('createdBy', 'username email');
 
-    // Fetch the updated poll to return
-    const updatedPoll = await Poll.findById(pollId).populate('createdBy', 'username email');
+    // If updatedPoll is null, it means the user already voted (race condition)
+    if (!updatedPoll) {
+      return res.status(400).json({ 
+        error: 'You have already voted on this poll' 
+      });
+    }
 
     // Calculate total votes for frontend convenience
     const totalVotes = updatedPoll.options.reduce((sum, opt) => sum + opt.votes, 0);
@@ -212,12 +225,22 @@ const votePoll = async (req, res) => {
     // Emit real-time vote update to all connected clients
     const io = req.app.get('io');
     if (io) {
+      // Broadcast to all clients
       io.emit('voteUpdated', {
         pollId: updatedPoll._id,
         poll: updatedPoll,
         totalVotes: totalVotes,
         updatedAt: new Date()
       });
+      
+      // Also broadcast to specific poll room if using rooms
+      io.to(`poll_${updatedPoll._id}`).emit('pollVoteUpdate', {
+        pollId: updatedPoll._id,
+        poll: updatedPoll,
+        totalVotes: totalVotes,
+        updatedAt: new Date()
+      });
+      
       console.log('Vote update broadcasted for poll:', updatedPoll.question);
     } else {
       console.log('Socket.IO instance not found');
@@ -246,10 +269,220 @@ const votePoll = async (req, res) => {
   }
 };
 
+// Add a comment to a poll
+const addComment = async (req, res) => {
+  try {
+    const { pollId } = req.params;
+    const { text } = req.body;
+
+    // Validation
+    if (!text || !text.trim()) {
+      return res.status(400).json({ 
+        error: 'Comment text is required' 
+      });
+    }
+
+    if (text.trim().length > 500) {
+      return res.status(400).json({ 
+        error: 'Comment must be 500 characters or less' 
+      });
+    }
+
+    // Find the poll
+    const poll = await Poll.findById(pollId);
+    if (!poll) {
+      return res.status(404).json({ 
+        error: 'Poll not found' 
+      });
+    }
+
+    // Create new comment
+    const newComment = {
+      text: text.trim(),
+      commentedBy: req.user.id,
+      createdAt: new Date()
+    };
+
+    // Add comment to poll
+    poll.comments.push(newComment);
+    await poll.save();
+
+    // Populate the newly added comment for response
+    await poll.populate('comments.commentedBy', 'username email');
+    
+    // Get the last comment (the one we just added)
+    const addedComment = poll.comments[poll.comments.length - 1];
+
+    // Emit real-time comment update to all connected clients
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('commentAdded', {
+        pollId: poll._id,
+        comment: addedComment,
+        totalComments: poll.comments.length,
+        updatedAt: new Date()
+      });
+      console.log('Comment added broadcasted for poll:', poll.question);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Comment added successfully',
+      comment: addedComment,
+      totalComments: poll.comments.length
+    });
+
+  } catch (error) {
+    console.error('Error adding comment:', error);
+    
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid poll ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
+// Get comments for a poll
+const getComments = async (req, res) => {
+  try {
+    const { pollId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    // Find the poll and populate comments
+    const poll = await Poll.findById(pollId)
+      .populate('comments.commentedBy', 'username email')
+      .select('comments');
+
+    if (!poll) {
+      return res.status(404).json({ 
+        error: 'Poll not found' 
+      });
+    }
+
+    // Sort comments by newest first
+    const sortedComments = poll.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // Implement pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedComments = sortedComments.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      comments: paginatedComments,
+      totalComments: poll.comments.length,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(poll.comments.length / limit),
+      hasMore: endIndex < poll.comments.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching comments:', error);
+    
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid poll ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
+// Toggle heart on a comment
+const toggleCommentHeart = async (req, res) => {
+  try {
+    const { pollId, commentId } = req.params;
+
+    // Find the poll
+    const poll = await Poll.findById(pollId);
+    if (!poll) {
+      return res.status(404).json({ 
+        error: 'Poll not found' 
+      });
+    }
+
+    // Find the comment
+    const comment = poll.comments.id(commentId);
+    if (!comment) {
+      return res.status(404).json({ 
+        error: 'Comment not found' 
+      });
+    }
+
+    // Check if user has already hearted this comment
+    const hasHearted = comment.heartedBy.includes(req.user.id);
+
+    if (hasHearted) {
+      // Remove heart
+      comment.heartedBy.pull(req.user.id);
+      comment.hearts = Math.max(0, comment.hearts - 1);
+    } else {
+      // Add heart
+      comment.heartedBy.push(req.user.id);
+      comment.hearts += 1;
+    }
+
+    await poll.save();
+
+    // Populate comment data for response
+    await poll.populate('comments.commentedBy', 'username email');
+    const updatedComment = poll.comments.id(commentId);
+
+    // Emit real-time heart update to all connected clients
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('commentHearted', {
+        pollId: poll._id,
+        commentId: commentId,
+        comment: updatedComment,
+        hearts: updatedComment.hearts,
+        hasHearted: !hasHearted,
+        updatedAt: new Date()
+      });
+      console.log('Comment heart update broadcasted for poll:', poll.question);
+    }
+
+    res.json({
+      success: true,
+      message: hasHearted ? 'Heart removed successfully' : 'Heart added successfully',
+      comment: updatedComment,
+      hearts: updatedComment.hearts,
+      hasHearted: !hasHearted
+    });
+
+  } catch (error) {
+    console.error('Error toggling comment heart:', error);
+    
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
 module.exports = {
   createPoll,
   getAllPolls,
   getUserPolls,
   getVotedPolls,
-  votePoll
+  votePoll,
+  addComment,
+  getComments,
+  toggleCommentHeart
 };

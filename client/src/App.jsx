@@ -10,6 +10,7 @@ import MyPollsPage from './pages/MyPollsPage';
 import CreatePollPage from './pages/CreatePollPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { isAuthenticated } from './api/auth';
 
 function App() {
@@ -25,40 +26,42 @@ function App() {
 
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/polls" element={<PollsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/auth-success" element={<AuthSuccessPage />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/my-polls" 
-            element={
-              <ProtectedRoute>
-                <MyPollsPage />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/create-poll" 
-            element={
-              <ProtectedRoute>
-                <CreatePollPage />
-              </ProtectedRoute>
-            } 
-          />
-          {/* Add more routes as needed */}
-        </Routes>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/polls" element={<PollsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/auth-success" element={<AuthSuccessPage />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-polls" 
+              element={
+                <ProtectedRoute>
+                  <MyPollsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/create-poll" 
+              element={
+                <ProtectedRoute>
+                  <CreatePollPage />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Add more routes as needed */}
+          </Routes>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaUser, FaClock, FaCheck, FaTag } from 'react-icons/fa';
+import CommentsSection from './CommentsSection';
 
 const AnsweredPollCard = ({ poll }) => {
   const formatDate = (dateString) => {
@@ -131,6 +132,12 @@ const AnsweredPollCard = ({ poll }) => {
           );
         })}
       </div>
+
+      {/* Comments Section */}
+      <CommentsSection 
+        pollId={poll._id} 
+        initialCommentCount={poll.comments?.length || 0}
+      />
     </motion.div>
   );
 };

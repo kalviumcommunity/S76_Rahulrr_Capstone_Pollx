@@ -169,9 +169,30 @@ io.on('connection', (socket) => {
     socket.leave(roomId);
     console.log(`Socket ${socket.id} left room: ${roomId}`);
   });
+
+  // Handle heartbeat to maintain connection
+  socket.on('heartbeat', (data) => {
+    socket.emit('heartbeat', { received: true, timestamp: new Date() });
+  });
+
+  // Handle poll subscription for real-time updates
+  socket.on('subscribeToPoll', (pollId) => {
+    socket.join(`poll_${pollId}`);
+    console.log(`Socket ${socket.id} subscribed to poll updates: ${pollId}`);
+  });
+
+  socket.on('unsubscribeFromPoll', (pollId) => {
+    socket.leave(`poll_${pollId}`);
+    console.log(`Socket ${socket.id} unsubscribed from poll updates: ${pollId}`);
+  });
   
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+  });
+
+  // Handle connection errors
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
   });
 });
 

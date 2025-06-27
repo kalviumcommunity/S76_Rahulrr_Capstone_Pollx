@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createPoll, getAllPolls, getUserPolls, getVotedPolls, votePoll } = require('../controllers/pollController');
+const { createPoll, getAllPolls, getUserPolls, getVotedPolls, votePoll, addComment, getComments, toggleCommentHeart } = require('../controllers/pollController');
 const { ensureAuth } = require('../middleware/authMiddleware');
 
 // POST /polls - Create a new poll (protected route)
@@ -17,5 +17,14 @@ router.get('/voted', ensureAuth, getVotedPolls);
 
 // POST /polls/:pollId/vote - Vote on a poll (protected route)
 router.post('/:pollId/vote', ensureAuth, votePoll);
+
+// POST /polls/:pollId/comments - Add a comment to a poll (protected route)
+router.post('/:pollId/comments', ensureAuth, addComment);
+
+// GET /polls/:pollId/comments - Get comments for a poll (public route)
+router.get('/:pollId/comments', getComments);
+
+// POST /polls/:pollId/comments/:commentId/heart - Toggle heart on a comment (protected route)
+router.post('/:pollId/comments/:commentId/heart', ensureAuth, toggleCommentHeart);
 
 module.exports = router;
