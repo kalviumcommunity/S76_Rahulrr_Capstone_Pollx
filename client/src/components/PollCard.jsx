@@ -62,6 +62,13 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disable
       // Show error message (you could add a toast notification here)
       if (error.error === 'Access denied. No token provided.') {
         alert('Please log in to vote on polls.');
+      } else if (error.error === 'You have already voted on this poll') {
+        // User already voted, update UI to reflect this
+        setHasVoted(true);
+        const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
+        votedPolls[poll._id] = true; // Mark as voted without specific option
+        localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
+        alert('You have already voted on this poll.');
       } else {
         alert(error.error || 'Failed to record vote. Please try again.');
       }

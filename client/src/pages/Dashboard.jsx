@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import { getCurrentUser, logout } from '../api/auth';
+import AnsweredPollCard from '../components/AnsweredPollCard';
+import { getCurrentUser, logout, getVotedPolls } from '../api/auth';
+import { FaSpinner, FaPoll } from 'react-icons/fa';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [answeredPolls, setAnsweredPolls] = useState([]);
+  const [votedPollsLoading, setVotedPollsLoading] = useState(true);
   
   useEffect(() => {
     const fetchUserData = async () => {
@@ -32,6 +36,28 @@ const Dashboard = () => {
     
     fetchUserData();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchVotedPolls = async () => {
+      try {
+        setVotedPollsLoading(true);
+        const response = await getVotedPolls();
+        const polls = response.polls || response || [];
+        setAnsweredPolls(polls);
+      } catch (err) {
+        console.error('Error fetching voted polls:', err);
+        // Don't show error for voted polls, just set empty array
+        setAnsweredPolls([]);
+      } finally {
+        setVotedPollsLoading(false);
+      }
+    };
+
+    // Only fetch voted polls if user is loaded
+    if (user) {
+      fetchVotedPolls();
+    }
+  }, [user]);
   
   const handleLogout = async () => {
     try {
@@ -56,6 +82,17 @@ const Dashboard = () => {
 
   const handleViewAllPolls = () => {
     navigate('/polls');
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   if (!user) return null; // or a loading spinner
@@ -117,6 +154,58 @@ const Dashboard = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Answered Polls Section */}
+        <div className="mt-8 bg-black p-6 rounded-lg shadow-lg border border-gray-800">
+          <div className="flex items-center mb-6">
+            <FaPoll className="text-[#FF2D2D] text-2xl mr-3" />
+            <h2 className="text-xl font-bold text-white">Polls You Participated In</h2>
+          </div>
+          
+          {votedPollsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <FaSpinner className="text-3xl text-[#FF2D2D] animate-spin mr-3" />
+              <span className="text-gray-300">Loading your participated polls...</span>
+            </div>
+          ) : answeredPolls.length === 0 ? (
+            <div className="text-center py-12">
+              <FaPoll className="text-5xl text-gray-600 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">No Polls Answered Yet</h3>
+              <p className="text-gray-400 mb-6">
+                Start voting on community polls to see them here!
+              </p>
+              <button
+                onClick={handleViewAllPolls}
+                className="px-6 py-3 bg-[#FF2D2D] text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Browse Community Polls
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-400 mb-4">
+                You have participated in {answeredPolls.length} poll{answeredPolls.length !== 1 ? 's' : ''}
+              </div>
+              
+              <div className="grid gap-4 max-h-96 overflow-y-auto">
+                {answeredPolls.map((poll, index) => (
+                  <AnsweredPollCard key={poll._id || index} poll={poll} />
+                ))}
+              </div>
+              
+              {answeredPolls.length > 3 && (
+                <div className="text-center mt-4">
+                  <button
+                    onClick={handleViewAllPolls}
+                    className="text-[#FF2D2D] hover:text-red-400 text-sm font-medium"
+                  >
+                    View all polls →
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
       

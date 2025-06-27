@@ -30,7 +30,11 @@ const pollSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,  
-  }
+  },
+  votedUsers: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }]
 }, {
   timestamps: true // This automatically adds createdAt and updatedAt
 });

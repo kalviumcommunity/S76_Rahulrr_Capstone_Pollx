@@ -110,6 +110,25 @@ const getUserPolls = async (req, res) => {
   }
 };
 
+// Get polls that the authenticated user has voted on
+const getVotedPolls = async (req, res) => {
+  try {
+    const polls = await Poll.find({ votedUsers: req.user.id })
+      .populate('createdBy', 'username email')
+      .sort({ createdAt: -1 });
+    
+    res.json({
+      success: true,
+      polls
+    });
+  } catch (error) {
+    console.error('Error fetching voted polls:', error);
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
 // Vote on a poll
 const votePoll = async (req, res) => {
   try {
@@ -139,8 +158,18 @@ const votePoll = async (req, res) => {
       });
     }
 
+    // Check if user has already voted on this poll
+    if (poll.votedUsers.includes(req.user.id)) {
+      return res.status(400).json({ 
+        error: 'You have already voted on this poll' 
+      });
+    }
+
     // Increment the vote count
     option.votes += 1;
+
+    // Add user to votedUsers array to track who voted
+    poll.votedUsers.push(req.user.id);
 
     // Save the updated poll
     await poll.save();
@@ -172,5 +201,6 @@ module.exports = {
   createPoll,
   getAllPolls,
   getUserPolls,
+  getVotedPolls,
   votePoll
 };

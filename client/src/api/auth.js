@@ -254,6 +254,16 @@ export const votePoll = async (pollId, optionId) => {
   }
 };
 
+// Get polls that the user has voted on
+export const getVotedPolls = async () => {
+  try {
+    const response = await api.get('/polls/voted');
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};
+
 // Function to refresh token if close to expiry
 export const refreshTokenIfNeeded = async () => {
   try {
