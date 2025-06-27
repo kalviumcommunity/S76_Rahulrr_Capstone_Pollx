@@ -34,6 +34,7 @@ const Navbar = () => {
           {isLoggedIn ? (
             // Navigation items for logged-in users
             <>
+              <Link to="/polls" className="text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
               <Link to="/dashboard" className="text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
               <Link to="/my-polls" className="text-white hover:text-[#FF2D2D] transition">My Polls</Link>
               <Link to="/create-poll" className="text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
@@ -41,6 +42,7 @@ const Navbar = () => {
           ) : (
             // Navigation items for visitors
             <>
+              <Link to="/polls" className="text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
               <a href="#features" className="text-white hover:text-[#FF2D2D] transition">Features</a>
               <a href="#how-it-works" className="text-white hover:text-[#FF2D2D] transition">How It Works</a>
               <a href="#categories" className="text-white hover:text-[#FF2D2D] transition">Categories</a>
@@ -97,6 +99,7 @@ const Navbar = () => {
           {isLoggedIn ? (
             // Mobile nav for logged-in users
             <>
+              <Link to="/polls" className="block text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
               <Link to="/dashboard" className="block text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
               <Link to="/my-polls" className="block text-white hover:text-[#FF2D2D] transition">My Polls</Link>
               <Link to="/create-poll" className="block text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
@@ -116,6 +119,7 @@ const Navbar = () => {
           ) : (
             // Mobile nav for visitors
             <>
+              <Link to="/polls" className="block text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
               <a href="#features" className="block text-white hover:text-[#FF2D2D] transition">Features</a>
               <a href="#how-it-works" className="block text-white hover:text-[#FF2D2D] transition">How It Works</a>
               <a href="#categories" className="block text-white hover:text-[#FF2D2D] transition">Categories</a>

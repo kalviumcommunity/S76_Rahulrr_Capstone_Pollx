@@ -4,7 +4,7 @@ const Joi = require('joi');
 const User = require('../models/User');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
-const JWT_EXPIRY = '24h'; // Token expires in 24 hours
+const JWT_EXPIRY = '7d'; // Token expires in 7 days instead of 24 hours
 
 const signupSchema = Joi.object({
     username: Joi.string().min(3).max(30).required(),

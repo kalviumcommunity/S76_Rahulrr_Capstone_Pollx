@@ -26,16 +26,15 @@ export const AuthProvider = ({ children }) => {
             setCurrentUser(JSON.parse(storedUser));
           }
           
-          // Then try to get fresh user data from server
-          const userData = await getCurrentUser();
-          setCurrentUser(userData);
+          // Don't fetch from server immediately to reduce friction
+          // Only fetch if no stored user data
+          if (!storedUser) {
+            const userData = await getCurrentUser();
+            setCurrentUser(userData);
+          }
         } catch (error) {
           console.error('Error fetching current user:', error);
-          
-          // If there's an error getting the user, we consider them logged out
-          await logout();
-          setIsLoggedIn(false);
-          setCurrentUser(null);
+          // Don't log out immediately on error - let the API interceptor handle it
         }
       } else {
         setCurrentUser(null);

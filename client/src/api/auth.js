@@ -14,20 +14,18 @@ api.interceptors.request.use(config => {
   try {
     const tokenData = localStorage.getItem('token');
     if (tokenData) {
-      const { value, expiry } = JSON.parse(tokenData);
-      const now = new Date();
-      const expiryDate = new Date(expiry);
+      let token;
+      try {
+        // Try to parse as JSON first (new format)
+        const parsed = JSON.parse(tokenData);
+        token = parsed.value || parsed.token;
+      } catch {
+        // If parsing fails, treat as plain string (old format)
+        token = tokenData;
+      }
       
-      // Check if token is valid and not expired
-      if (value && now < expiryDate) {
-        config.headers.Authorization = `Bearer ${value}`;
-      } else {
-        // Token expired, clear it
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        
-        // You might want to redirect to login page here
-        // but that's typically handled by response interceptor
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
     }
     return config;
@@ -41,16 +39,10 @@ export const register = async (userData) => {
   try {
     const response = await api.post('/auth/signup', userData);
     
-    // Store the token with expiration time (24 hours)
-    const now = new Date();
-    const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    // Store the token directly (server handles expiration)
+    const token = response.data.token;
     
-    const tokenData = {
-      value: response.data.token,
-      expiry: expiry.toISOString()
-    };
-    
-    localStorage.setItem('token', JSON.stringify(tokenData));
+    localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(response.data.user));
     return response.data;
   } catch (error) {
@@ -62,16 +54,10 @@ export const login = async (credentials) => {
   try {
     const response = await api.post('/auth/login', credentials);
     
-    // Store the token with expiration time (24 hours)
-    const now = new Date();
-    const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    // Store the token directly (server handles expiration)
+    const token = response.data.token;
     
-    const tokenData = {
-      value: response.data.token,
-      expiry: expiry.toISOString()
-    };
-    
-    localStorage.setItem('token', JSON.stringify(tokenData));
+    localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(response.data.user));
     return response.data;
   } catch (error) {
@@ -120,17 +106,20 @@ export const logout = async () => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle 401 Unauthorized or 403 Forbidden responses
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
-      console.log('Authentication error:', error.response.data);
+    // Only handle authentication errors from specific endpoints
+    if (error?.response?.status === 401) {
+      const errorMessage = error?.response?.data?.error || '';
       
-      // Clear user data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      
-      // Redirect to login page if not already there
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login?session=expired';
+      // Only clear auth data if it's explicitly an invalid token error
+      if (errorMessage.includes('Invalid token') || errorMessage.includes('token')) {
+        console.log('Token invalid, clearing auth data');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Only redirect if not already on login page
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+          window.location.href = '/login?session=expired';
+        }
       }
     }
     
@@ -140,11 +129,6 @@ api.interceptors.response.use(
 
 export const getCurrentUser = async () => {
   try {
-    // First check if token is expired
-    if (isTokenExpired()) {
-      throw new Error('Token expired');
-    }
-    
     const response = await api.get('/auth/me');
     return response.data;
   } catch (error) {
@@ -154,19 +138,12 @@ export const getCurrentUser = async () => {
 
 export const isAuthenticated = () => {
   try {
-    const tokenData = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
-    if (!tokenData || !userData) {
-      return false;
-    }
-    
-    const { value, expiry } = JSON.parse(tokenData);
-    const now = new Date();
-    const expiryDate = new Date(expiry);
-    
-    // Check if token is valid and not expired
-    return value && now < expiryDate;
+    // Simple check - if both token and user data exist, consider authenticated
+    // Let the server handle token validation
+    return !!(token && userData);
   } catch (error) {
     console.error('Error checking authentication status:', error);
     return false;
@@ -249,13 +226,8 @@ export const handleAuthSuccess = (queryParams) => {
       return null;
     }
     
-    // Store the token with expiration time (24 hours)
-    const now = new Date();
-    const expiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
-    const tokenData = { value: token, expiry: expiry.toISOString() };
-    
-    // Store auth data
-    localStorage.setItem('token', JSON.stringify(tokenData));
+    // Store auth data directly (no client-side expiry)
+    localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userObj));
     
     console.log('Authentication data stored successfully');
@@ -266,20 +238,35 @@ export const handleAuthSuccess = (queryParams) => {
   }
 };
 
-// Check if token is expired
+// Check if token is expired (simplified)
 export const isTokenExpired = () => {
-  const tokenData = localStorage.getItem('token');
-  
-  if (!tokenData) return true;
-  
+  const token = localStorage.getItem('token');
+  return !token; // Simply check if token exists
+};
+
+// Function to refresh token if close to expiry
+export const refreshTokenIfNeeded = async () => {
   try {
-    const { value, expiry } = JSON.parse(tokenData);
-    const now = new Date();
-    const expiryDate = new Date(expiry);
+    const token = localStorage.getItem('token');
+    if (!token) return false;
     
-    return !value || now >= expiryDate;
-  } catch (err) {
-    console.error('Error checking token expiration:', err);
-    return true;
+    // Only verify with server if we haven't checked recently
+    const lastCheck = localStorage.getItem('last_token_check');
+    const now = Date.now();
+    
+    // Check every 5 minutes max to reduce server calls
+    if (lastCheck && now - parseInt(lastCheck) < 5 * 60 * 1000) {
+      return true; // Assume valid if checked recently
+    }
+    
+    // Verify with server
+    const response = await api.get('/auth/verify-token');
+    localStorage.setItem('last_token_check', now.toString());
+    
+    return response.status === 200;
+  } catch (error) {
+    // If verification fails, clear the check timestamp
+    localStorage.removeItem('last_token_check');
+    return false;
   }
 };

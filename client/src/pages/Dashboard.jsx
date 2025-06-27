@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import PollCreationForm from '../components/PollCreationForm';
 import { getCurrentUser, logout } from '../api/auth';
 
 const Dashboard = () => {
@@ -10,7 +9,6 @@ const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showPollForm, setShowPollForm] = useState(false);
   
   useEffect(() => {
     const fetchUserData = async () => {
@@ -49,11 +47,15 @@ const Dashboard = () => {
   };
   
   const handleCreatePoll = () => {
-    setShowPollForm(true);
+    navigate('/create-poll');
   };
 
-  const handleClosePollForm = () => {
-    setShowPollForm(false);
+  const handleViewMyPolls = () => {
+    navigate('/my-polls');
+  };
+
+  const handleViewAllPolls = () => {
+    navigate('/polls');
   };
 
   if (!user) return null; // or a loading spinner
@@ -81,23 +83,37 @@ const Dashboard = () => {
             </p>
           </div>
           
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="p-4 border border-gray-700 rounded-lg">
+          <div className="grid gap-6 md:grid-cols-3">
+            <div className="p-4 border border-gray-700 rounded-lg hover:border-[#FF2D2D] transition-colors">
               <h3 className="text-lg font-medium text-white mb-2">Create New Poll</h3>
               <p className="text-gray-400 mb-4">Start a new poll and share it with your audience.</p>
               <button 
                 onClick={handleCreatePoll}
-                className="px-4 py-2 bg-[#FF2D2D] text-white rounded hover:bg-red-700"
+                className="px-4 py-2 bg-[#FF2D2D] text-white rounded hover:bg-red-700 transition-colors"
               >
                 Create Poll
               </button>
             </div>
             
-            <div className="p-4 border border-gray-700 rounded-lg">
+            <div className="p-4 border border-gray-700 rounded-lg hover:border-[#FF2D2D] transition-colors">
               <h3 className="text-lg font-medium text-white mb-2">Your Polls</h3>
               <p className="text-gray-400 mb-4">View and manage polls you've created.</p>
-              <button className="px-4 py-2 border border-gray-600 text-white rounded hover:bg-gray-700">
-                View All
+              <button 
+                onClick={handleViewMyPolls}
+                className="px-4 py-2 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                View My Polls
+              </button>
+            </div>
+
+            <div className="p-4 border border-gray-700 rounded-lg hover:border-[#FF2D2D] transition-colors">
+              <h3 className="text-lg font-medium text-white mb-2">Community Polls</h3>
+              <p className="text-gray-400 mb-4">Browse and participate in community polls.</p>
+              <button 
+                onClick={handleViewAllPolls}
+                className="px-4 py-2 border border-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+              >
+                Browse Polls
               </button>
             </div>
           </div>
@@ -105,11 +121,6 @@ const Dashboard = () => {
       </main>
       
       <Footer />
-      
-      {/* Poll Creation Form Modal */}
-      {showPollForm && (
-        <PollCreationForm onClose={handleClosePollForm} />
-      )}
     </div>
   );
 };

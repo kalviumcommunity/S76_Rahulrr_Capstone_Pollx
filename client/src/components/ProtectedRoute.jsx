@@ -27,27 +27,13 @@ const ProtectedRoute = ({ children }) => {
       return;
     }
     
-    // If context shows logged in, verify with server
-    const verifyAuth = async () => {
-      try {
-        // Use the more efficient token verification endpoint
-        const isValid = await verifyTokenWithServer();
-        setAuthState({
-          isLoading: false,
-          isAuthed: isValid,
-          userChecked: true
-        });
-      } catch (error) {
-        console.error('Auth verification error:', error);
-        setAuthState({
-          isLoading: false,
-          isAuthed: false,
-          userChecked: true
-        });
-      }
-    };
-    
-    verifyAuth();
+    // If context shows logged in, trust it and don't verify with server
+    // This reduces friction for users
+    setAuthState({
+      isLoading: false,
+      isAuthed: true,
+      userChecked: true
+    });
   }, [isLoggedIn]);
   
   if (authState.isLoading) {

@@ -1,25 +1,38 @@
 const mongoose = require('mongoose');
 
 const optionSchema = new mongoose.Schema({
-  text: String,
-  votes: { type: Number, default: 0 },
+  text: { 
+    type: String, 
+    required: true 
+  },
+  votes: { 
+    type: Number, 
+    default: 0 
+  },
 });
 
 const pollSchema = new mongoose.Schema({
   question: {
     type: String,
     required: true,
+    trim: true
   },
-  options: [optionSchema],
+  options: {
+    type: [optionSchema],
+    validate: {
+      validator: function(options) {
+        return options.length >= 2 && options.length <= 4;
+      },
+      message: 'Poll must have between 2 and 4 options'
+    }
+  },
   createdBy: { 
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',  // refer User model
+    ref: 'User',
     required: true,  
-  },
-    createdAt: {
-    type: Date,
-    default: Date.now,
-  },
+  }
+}, {
+  timestamps: true // This automatically adds createdAt and updatedAt
 });
 
 module.exports = mongoose.model('Poll', pollSchema);

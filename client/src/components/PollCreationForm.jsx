@@ -3,6 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { FaPoll, FaPlus, FaTimes } from 'react-icons/fa';
 import Button from './Button';
 
+const API_URL = import.meta.env.MODE === 'development' 
+  ? 'http://localhost:5000' 
+  : 'https://s76-rahulrr-capstone-pollx.onrender.com';
+
 const PollCreationForm = ({ onClose }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -29,7 +33,7 @@ const PollCreationForm = ({ onClose }) => {
   };
 
   const addOption = () => {
-    if (formData.options.length < 6) {
+    if (formData.options.length < 4) {
       setFormData({
         ...formData,
         options: [...formData.options, '']
@@ -62,26 +66,63 @@ const PollCreationForm = ({ onClose }) => {
       return;
     }
 
+    if (validOptions.length > 4) {
+      setError('Maximum 4 options allowed');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
 
     try {
-      // Simulate API call with a delay
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to create a poll');
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+        return;
+      }
+
       const pollData = {
         question: formData.question.trim(),
-        options: validOptions.map(option => ({ text: option.trim() }))
+        options: validOptions.map(option => option.trim())
       };
       
-      console.log('Poll data ready to be submitted:', pollData);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Success - close form and navigate back to dashboard
+      const response = await fetch(`${API_URL}/polls`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(pollData)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid - redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setError('Your session has expired. Please log in again.');
+          setTimeout(() => {
+            navigate('/login');
+          }, 2000);
+          return;
+        }
+        throw new Error(result.error || 'Failed to create poll');
+      }
+
+      // Success - show success message and close form
+      setFormData({ question: '', options: ['', ''] });
       if (onClose) onClose();
-      // You could also show a success message or redirect to the poll
+      
+      // You could add a toast notification here for success
+      alert('Poll created successfully!');
+      
     } catch (err) {
-      setError('Failed to create poll');
+      setError(err.message || 'Failed to create poll');
     } finally {
       setIsLoading(false);
     }
@@ -151,7 +192,7 @@ const PollCreationForm = ({ onClose }) => {
               ))}
             </div>
             
-            {formData.options.length < 6 && (
+            {formData.options.length < 4 && (
               <button
                 type="button"
                 onClick={addOption}

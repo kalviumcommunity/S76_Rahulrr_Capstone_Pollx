@@ -40,6 +40,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('./models/User');
 
 const authRoutes = require('./routes/routes');
+const pollRoutes = require('./routes/pollRoutes');
 
 const app = express();
 
@@ -49,7 +50,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://pollx.netlify.app', 'https://s76-rahulrr-capstone-pollx.onrender.com']
-    : ['http://localhost:5173', 'http://localhost:5000'],
+    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5000'],
   credentials: true,
 }));
 
@@ -121,6 +122,7 @@ app.use(passport.session());
 connectDB();
 
 app.use('/auth', authRoutes);
+app.use('/polls', pollRoutes);
 
 app.listen(PORT, () => {
 

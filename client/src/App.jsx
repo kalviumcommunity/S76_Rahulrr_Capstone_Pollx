@@ -5,8 +5,12 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import AuthSuccessPage from './pages/AuthSuccessPage';
+import PollsPage from './pages/PollsPage';
+import MyPollsPage from './pages/MyPollsPage';
+import CreatePollPage from './pages/CreatePollPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
+import { isAuthenticated } from './api/auth';
 
 function App() {
   // Check authentication status when the app loads
@@ -24,6 +28,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/polls" element={<PollsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/auth-success" element={<AuthSuccessPage />} />
@@ -32,6 +37,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/my-polls" 
+            element={
+              <ProtectedRoute>
+                <MyPollsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/create-poll" 
+            element={
+              <ProtectedRoute>
+                <CreatePollPage />
               </ProtectedRoute>
             } 
           />
