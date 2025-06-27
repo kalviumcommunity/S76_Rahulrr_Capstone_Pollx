@@ -147,15 +147,6 @@ const CommentsSection = ({ pollId, initialCommentCount = 0 }) => {
             ▼
           </span>
         </button>
-
-        {commentCount > 0 && (
-          <div className="flex items-center space-x-2">
-            <FaHeart className="text-red-400 text-sm" />
-            <span className="text-gray-400 text-sm">
-              {comments.reduce((total, comment) => total + (comment.hearts || 0), 0)} hearts
-            </span>
-          </div>
-        )}
       </div>
 
       <AnimatePresence>

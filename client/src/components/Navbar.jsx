@@ -24,7 +24,7 @@ const Navbar = () => {
   return (
     <nav className="bg-black py-4 px-6 md:px-12 sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-2">
+        <Link to={isLoggedIn ? "/polls" : "/"} className="flex items-center space-x-2">
           <FaPoll className="text-[#FF2D2D] text-2xl" />
           <span className="text-2xl font-bold text-white">Poll<span className="text-[#FF2D2D]">X</span></span>
         </Link>
