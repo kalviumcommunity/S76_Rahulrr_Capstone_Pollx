@@ -110,8 +110,67 @@ const getUserPolls = async (req, res) => {
   }
 };
 
+// Vote on a poll
+const votePoll = async (req, res) => {
+  try {
+    const { pollId } = req.params;
+    const { optionId } = req.body;
+
+    // Validation
+    if (!optionId) {
+      return res.status(400).json({ 
+        error: 'Option ID is required' 
+      });
+    }
+
+    // Find the poll
+    const poll = await Poll.findById(pollId).populate('createdBy', 'username email');
+    if (!poll) {
+      return res.status(404).json({ 
+        error: 'Poll not found' 
+      });
+    }
+
+    // Find the option by its _id
+    const option = poll.options.id(optionId);
+    if (!option) {
+      return res.status(404).json({ 
+        error: 'Option not found' 
+      });
+    }
+
+    // Increment the vote count
+    option.votes += 1;
+
+    // Save the updated poll
+    await poll.save();
+
+    // Return the updated poll
+    res.json({
+      success: true,
+      message: 'Vote recorded successfully',
+      poll
+    });
+
+  } catch (error) {
+    console.error('Error voting on poll:', error);
+    
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid poll ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
 module.exports = {
   createPoll,
   getAllPolls,
-  getUserPolls
+  getUserPolls,
+  votePoll
 };

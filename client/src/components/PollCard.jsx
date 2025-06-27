@@ -1,8 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaUser, FaClock, FaEdit, FaTrash } from 'react-icons/fa';
+import { FaUser, FaClock, FaEdit, FaTrash, FaVoteYea, FaCheck, FaSpinner } from 'react-icons/fa';
+import { votePoll } from '../api/auth';
+import { useAuth } from '../context/AuthContext';
 
-const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote }) => {
+const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disableVoting = false }) => {
+  const { isLoggedIn } = useAuth();
+  const [voting, setVoting] = useState(false);
+  const [votedOptionId, setVotedOptionId] = useState(null);
+  const [localPoll, setLocalPoll] = useState(poll);
+  const [hasVoted, setHasVoted] = useState(() => {
+    // Check if user has already voted on this poll (from localStorage)
+    const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
+    return votedPolls[poll._id] || false;
+  });
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
@@ -15,8 +27,53 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote }) => {
   };
 
   const getTotalVotes = () => {
-    if (!poll.options || !Array.isArray(poll.options)) return 0;
-    return poll.options.reduce((total, option) => total + (option.votes || 0), 0);
+    if (!localPoll.options || !Array.isArray(localPoll.options)) return 0;
+    return localPoll.options.reduce((total, option) => total + (option.votes || 0), 0);
+  };
+
+  const handleVote = async (optionId) => {
+    if (voting || hasVoted || disableVoting || !isLoggedIn) return;
+
+    try {
+      setVoting(true);
+      setVotedOptionId(optionId);
+
+      // Call the voting API
+      const response = await votePoll(poll._id, optionId);
+      
+      if (response.success && response.poll) {
+        // Update local state with the new poll data
+        setLocalPoll(response.poll);
+        
+        // Mark as voted in localStorage
+        const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
+        votedPolls[poll._id] = optionId;
+        localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
+        
+        setHasVoted(true);
+        
+        // Call parent component's onVote if provided
+        if (onVote) {
+          onVote(response.poll);
+        }
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      // Show error message (you could add a toast notification here)
+      if (error.error === 'Access denied. No token provided.') {
+        alert('Please log in to vote on polls.');
+      } else {
+        alert(error.error || 'Failed to record vote. Please try again.');
+      }
+    } finally {
+      setVoting(false);
+      setVotedOptionId(null);
+    }
+  };
+
+  const isOptionVoted = (optionId) => {
+    const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
+    return votedPolls[poll._id] === optionId;
   };
 
   return (
@@ -30,61 +87,129 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote }) => {
       {/* Poll Question */}
       <div className="mb-6">
         <h3 className="text-xl font-bold mb-4 text-white leading-relaxed">
-          {poll.question}
+          {localPoll.question}
         </h3>
         
         {/* Poll Options */}
         <div className="space-y-3">
-          {poll.options && poll.options.map((option, index) => (
-            <motion.div 
-              key={index} 
-              whileHover={{ scale: 1.02 }}
-              className="bg-gray-800 rounded-lg p-4 border border-gray-600 hover:border-gray-500 transition-all duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-gray-200 font-medium">{option.text}</span>
-                {option.votes !== undefined && (
-                  <span className="text-[#FF2D2D] font-bold text-sm">
-                    {option.votes} votes
-                  </span>
-                )}
-              </div>
-              
-              {/* Vote Progress Bar */}
-              {option.votes !== undefined && getTotalVotes() > 0 && (
-                <div className="mt-3">
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-[#FF2D2D] to-red-600 h-2 rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${(option.votes / getTotalVotes()) * 100}%` 
-                      }}
-                    ></div>
+          {localPoll.options && localPoll.options.map((option, index) => {
+            const isVotedOption = isOptionVoted(option._id);
+            const isCurrentVoting = voting && votedOptionId === option._id;
+            
+            return (
+              <motion.div 
+                key={option._id || index} 
+                whileHover={!hasVoted && !disableVoting ? { scale: 1.02 } : {}}
+                className={`bg-gray-800 rounded-lg p-4 border transition-all duration-200 ${
+                  isVotedOption 
+                    ? 'border-[#FF2D2D] bg-red-900/20' 
+                    : hasVoted || disableVoting || !isLoggedIn
+                      ? 'border-gray-600'
+                      : 'border-gray-600 hover:border-gray-500 cursor-pointer'
+                }`}
+                onClick={!hasVoted && !disableVoting && isLoggedIn ? () => handleVote(option._id) : undefined}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center flex-1">
+                    <span className="text-gray-200 font-medium flex-1">{option.text}</span>
+                    
+                    {/* Vote Button or Status */}
+                    {!disableVoting && (
+                      <div className="ml-4">
+                        {isCurrentVoting ? (
+                          <FaSpinner className="text-[#FF2D2D] animate-spin" />
+                        ) : isVotedOption ? (
+                          <div className="flex items-center text-[#FF2D2D]">
+                            <FaCheck className="mr-1" />
+                            <span className="text-sm font-medium">Voted</span>
+                          </div>
+                        ) : hasVoted ? (
+                          <span className="text-gray-500 text-sm">—</span>
+                        ) : !isLoggedIn ? (
+                          <motion.a
+                            href="/login"
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="flex items-center px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+                          >
+                            <FaVoteYea className="mr-1" />
+                            Login to Vote
+                          </motion.a>
+                        ) : (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            className="flex items-center px-3 py-1 bg-[#FF2D2D] text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVote(option._id);
+                            }}
+                          >
+                            <FaVoteYea className="mr-1" />
+                            Vote
+                          </motion.button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>{((option.votes / getTotalVotes()) * 100).toFixed(1)}%</span>
-                  </div>
+                  
+                  {option.votes !== undefined && (
+                    <span className="text-[#FF2D2D] font-bold text-sm ml-4">
+                      {option.votes} votes
+                    </span>
+                  )}
                 </div>
-              )}
-            </motion.div>
-          ))}
+                
+                {/* Vote Progress Bar */}
+                {option.votes !== undefined && getTotalVotes() > 0 && (
+                  <div className="mt-3">
+                    <div className="w-full bg-gray-700 rounded-full h-2">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(option.votes / getTotalVotes()) * 100}%` }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          isVotedOption 
+                            ? 'bg-gradient-to-r from-[#FF2D2D] to-red-400' 
+                            : 'bg-gradient-to-r from-[#FF2D2D] to-red-600'
+                        }`}
+                      ></motion.div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>{((option.votes / getTotalVotes()) * 100).toFixed(1)}%</span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Voting Status */}
+      {hasVoted && !disableVoting && (
+        <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
+          <div className="flex items-center text-green-400">
+            <FaCheck className="mr-2" />
+            <span className="text-sm font-medium">Thank you for voting!</span>
+          </div>
+        </div>
+      )}
 
       {/* Poll Metadata */}
       <div className="flex justify-between items-center text-sm text-gray-400 border-t border-gray-600 pt-4">
         <div className="flex items-center space-x-4">
-          {poll.createdBy && (
+          {localPoll.createdBy && (
             <div className="flex items-center space-x-2">
               <FaUser className="text-xs text-[#FF2D2D]" />
-              <span>{poll.createdBy.username || poll.createdBy.email || 'Anonymous'}</span>
+              <span>{localPoll.createdBy.username || localPoll.createdBy.email || 'Anonymous'}</span>
             </div>
           )}
           
-          {poll.createdAt && (
+          {localPoll.createdAt && (
             <div className="flex items-center space-x-2">
               <FaClock className="text-xs text-[#FF2D2D]" />
-              <span>{formatDate(poll.createdAt)}</span>
+              <span>{formatDate(localPoll.createdAt)}</span>
             </div>
           )}
         </div>
@@ -102,7 +227,7 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onEdit(poll)}
+              onClick={() => onEdit(localPoll)}
               className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
             >
               <FaEdit className="mr-2" />
@@ -113,7 +238,7 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote }) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => onDelete(poll)}
+              onClick={() => onDelete(localPoll)}
               className="flex items-center px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
             >
               <FaTrash className="mr-2" />

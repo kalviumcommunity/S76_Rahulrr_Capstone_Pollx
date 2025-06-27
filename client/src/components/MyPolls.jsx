@@ -247,8 +247,15 @@ const MyPolls = () => {
                 <PollCard 
                   poll={poll} 
                   showActions={true}
+                  disableVoting={true} // Disable voting on own polls
                   onEdit={handleEditPoll}
                   onDelete={handleDeletePoll}
+                  onVote={(updatedPoll) => {
+                    // Update the poll in the list when a vote is cast
+                    setPolls(prevPolls => 
+                      prevPolls.map(p => p._id === updatedPoll._id ? updatedPoll : p)
+                    );
+                  }}
                 />
               </motion.div>
             ))}

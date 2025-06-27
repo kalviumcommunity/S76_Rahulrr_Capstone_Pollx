@@ -152,7 +152,16 @@ const PollFeed = () => {
           >
             {polls.map((poll, index) => (
               <motion.div key={poll._id || index} variants={itemVariants}>
-                <PollCard poll={poll} />
+                <PollCard 
+                  poll={poll} 
+                  showActions={false}
+                  onVote={(updatedPoll) => {
+                    // Update the poll in the list when a vote is cast
+                    setPolls(prevPolls => 
+                      prevPolls.map(p => p._id === updatedPoll._id ? updatedPoll : p)
+                    );
+                  }}
+                />
               </motion.div>
             ))}
           </motion.div>

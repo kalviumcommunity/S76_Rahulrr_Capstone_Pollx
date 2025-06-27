@@ -244,6 +244,16 @@ export const isTokenExpired = () => {
   return !token; // Simply check if token exists
 };
 
+// Vote on a poll
+export const votePoll = async (pollId, optionId) => {
+  try {
+    const response = await api.post(`/polls/${pollId}/vote`, { optionId });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};
+
 // Function to refresh token if close to expiry
 export const refreshTokenIfNeeded = async () => {
   try {
