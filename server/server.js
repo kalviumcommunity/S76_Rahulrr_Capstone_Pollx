@@ -2,7 +2,10 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const cookieParser = require('cookie-parser');
 const mongoose = require('mongoose');
 
@@ -31,11 +34,17 @@ if (missingEnvVars.length > 0) {
 }
 
 console.log('All required environment variables are loaded');
-console.log('Environment check:');
-console.log('- GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
-console.log('- GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
-console.log('- GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
-console.log('- NODE_ENV:', process.env.NODE_ENV);
+
+// Only log environment details in development
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Environment check:');
+  console.log('- GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Missing');
+  console.log('- GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
+  console.log('- GOOGLE_CALLBACK_URL:', process.env.GOOGLE_CALLBACK_URL);
+  console.log('- NODE_ENV:', process.env.NODE_ENV);
+} else {
+  console.log('Production environment - environment variables validated');
+}
 
 const connectDB = require('./config/db.js');
 const passport = require('passport');
@@ -50,6 +59,31 @@ const authRoutes = require('./routes/routes');
 const pollRoutes = require('./routes/pollRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const DatabaseWatcher = require('./services/DatabaseWatcher');
+
+// Production-safe logging utility
+const safeLog = {
+  info: (message, data = null) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[INFO] ${message}`);
+    } else {
+      console.log(`[INFO] ${message}`, data || '');
+    }
+  },
+  error: (message, error = null) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[ERROR] ${message}`, error?.message || '');
+    } else {
+      console.error(`[ERROR] ${message}`, error || '');
+    }
+  },
+  auth: (message, userId = null) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[AUTH] ${message}${userId ? ` for user ${userId}` : ''}`);
+    } else {
+      console.log(`[AUTH] ${message}`, userId || '');
+    }
+  }
+};
 
 const app = express();
 const server = http.createServer(app);
@@ -111,7 +145,7 @@ const corsOptions = {
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      console.log(`❌ CORS blocked origin: ${origin}`);
+      safeLog.error(`CORS blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -123,15 +157,53 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use(express.json());
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for Socket.IO compatibility
+  crossOriginEmbedderPolicy: false // Allow embedded content
+}));
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 100 : 1000, // Limit each IP to 100 requests per windowMs in production
+  message: {
+    error: 'Too many requests from this IP, please try again later.'
+  },
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+});
+
+// Apply rate limiting to all requests
+app.use(limiter);
+
+// Stricter rate limiting for auth routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 auth requests per windowMs
+  message: {
+    error: 'Too many authentication attempts, please try again later.'
+  },
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
-// Configure session middleware
+// Configure session middleware with MongoDB store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'pollX_session_secret',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 } // 24 hours
+  store: MongoStore.create({
+    mongoUrl: process.env.DB_URL || process.env.MONGO_URI,
+    touchAfter: 24 * 3600 // lazy session update
+  }),
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
 }));
 
 // Configure passport
@@ -188,7 +260,8 @@ passport.deserializeUser(async (id, done) => {
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/auth', authRoutes);
+// Apply auth rate limiter to auth routes
+app.use('/auth', authLimiter, authRoutes);
 app.use('/polls', pollRoutes);
 app.use('/api', aiRoutes);
 
@@ -201,6 +274,11 @@ app.get('/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     version: require('./package.json').version
   });
+});
+
+// Simple ping endpoint for monitoring
+app.get('/ping', (req, res) => {
+  res.status(200).json({ message: 'pong', timestamp: new Date().toISOString() });
 });
 
 // Root endpoint
@@ -233,7 +311,7 @@ app.use((err, req, res, next) => {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  safeLog.info('User connected', process.env.NODE_ENV !== 'production' ? socket.id : '[ID Hidden]');
   
   // Send a welcome event to the newly connected client
   socket.emit('welcome', {
@@ -245,12 +323,12 @@ io.on('connection', (socket) => {
   // Listen for client-specific events
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
-    console.log(`Socket ${socket.id} joined room: ${roomId}`);
+    safeLog.info(`Socket joined room: ${roomId}`, process.env.NODE_ENV !== 'production' ? socket.id : null);
   });
   
   socket.on('leaveRoom', (roomId) => {
     socket.leave(roomId);
-    console.log(`Socket ${socket.id} left room: ${roomId}`);
+    safeLog.info(`Socket left room: ${roomId}`, process.env.NODE_ENV !== 'production' ? socket.id : null);
   });
 
   // Handle heartbeat to maintain connection
@@ -261,78 +339,81 @@ io.on('connection', (socket) => {
   // Handle poll subscription for real-time updates
   socket.on('subscribeToPoll', (pollId) => {
     socket.join(`poll_${pollId}`);
-    console.log(`Socket ${socket.id} subscribed to poll updates: ${pollId}`);
+    safeLog.info(`Socket subscribed to poll updates: ${pollId}`, process.env.NODE_ENV !== 'production' ? socket.id : null);
   });
 
   socket.on('unsubscribeFromPoll', (pollId) => {
     socket.leave(`poll_${pollId}`);
-    console.log(`Socket ${socket.id} unsubscribed from poll updates: ${pollId}`);
+    safeLog.info(`Socket unsubscribed from poll updates: ${pollId}`, process.env.NODE_ENV !== 'production' ? socket.id : null);
   });
   
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    safeLog.info('User disconnected', process.env.NODE_ENV !== 'production' ? socket.id : null);
   });
 
   // Handle connection errors
   socket.on('error', (error) => {
-    console.error('Socket error:', error);
+    safeLog.error('Socket error:', error);
   });
 });
 
 connectDB().catch(err => {
-  console.error('❌ Database connection failed:', err);
+  safeLog.error('Database connection failed:', err);
   process.exit(1);
 });
 
 // Initialize database watcher after database connection
 mongoose.connection.once('open', () => {
-  console.log('✅ MongoDB connected successfully');
+  safeLog.info('MongoDB connected successfully');
   
   // Initialize database change watcher
   try {
     const dbWatcher = new DatabaseWatcher(io);
-    console.log('🔍 Database watcher initialized');
+    safeLog.info('Database watcher initialized');
   } catch (error) {
-    console.error('⚠️ Database watcher failed to initialize:', error);
+    safeLog.error('Database watcher failed to initialize:', error);
   }
 });
 
 // Handle database connection errors
 mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB connection error:', err);
+  safeLog.error('MongoDB connection error:', err);
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('⚠️ MongoDB disconnected');
+  safeLog.info('MongoDB disconnected');
 });
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+    console.log(`📍 Ping endpoint: http://localhost:${PORT}/ping`);
+  }
 }).on('error', (err) => {
-  console.error('❌ Server failed to start:', err);
+  safeLog.error('Server failed to start:', err);
   process.exit(1);
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  console.log('\n⚠️ Received SIGINT. Graceful shutdown initiated...');
+  safeLog.info('Received SIGINT. Graceful shutdown initiated...');
   server.close(() => {
-    console.log('✅ HTTP server closed');
+    safeLog.info('HTTP server closed');
     mongoose.connection.close(false, () => {
-      console.log('✅ MongoDB connection closed');
+      safeLog.info('MongoDB connection closed');
       process.exit(0);
     });
   });
 });
 
 process.on('SIGTERM', () => {
-  console.log('\n⚠️ Received SIGTERM. Graceful shutdown initiated...');
+  safeLog.info('Received SIGTERM. Graceful shutdown initiated...');
   server.close(() => {
-    console.log('✅ HTTP server closed');
+    safeLog.info('HTTP server closed');
     mongoose.connection.close(false, () => {
-      console.log('✅ MongoDB connection closed');
+      safeLog.info('MongoDB connection closed');
       process.exit(0);
     });
   });
@@ -340,11 +421,11 @@ process.on('SIGTERM', () => {
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (error) => {
-  console.error('❌ Uncaught Exception:', error);
+  safeLog.error('Uncaught Exception:', error);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  safeLog.error('Unhandled Rejection:', { reason, promise: promise.toString() });
   process.exit(1);
 });

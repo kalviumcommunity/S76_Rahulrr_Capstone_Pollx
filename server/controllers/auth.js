@@ -6,6 +6,24 @@ const User = require('../models/User');
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
 const JWT_EXPIRY = '7d'; // Token expires in 7 days instead of 24 hours
 
+// Production-safe logging utility
+const safeLog = {
+  info: (message, data = null) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`[AUTH] ${message}`);
+    } else {
+      console.log(`[AUTH] ${message}`, data || '');
+    }
+  },
+  error: (message, error = null) => {
+    if (process.env.NODE_ENV === 'production') {
+      console.error(`[AUTH ERROR] ${message}`, error?.message || '');
+    } else {
+      console.error(`[AUTH ERROR] ${message}`, error || '');
+    }
+  }
+};
+
 const signupSchema = Joi.object({
     username: Joi.string().min(3).max(30).required(),
     email: Joi.string().email().required(),
@@ -33,6 +51,8 @@ const signup = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
         
+        safeLog.info('User registered successfully', process.env.NODE_ENV !== 'production' ? user.email : 'Email hidden');
+        
         // Return user data with token
         const userData = {
             id: user._id,
@@ -42,7 +62,7 @@ const signup = async (req, res) => {
         
         res.json({ token, user: userData });
     } catch (err) {
-        console.error(err);
+        safeLog.error('Signup error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -61,6 +81,8 @@ const login = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
         
+        safeLog.info('User logged in successfully', process.env.NODE_ENV !== 'production' ? user.email : 'Email hidden');
+        
         // Return user data with token
         const userData = {
             id: user._id,
@@ -71,7 +93,7 @@ const login = async (req, res) => {
         
         res.json({ token, user: userData });
     } catch (err) {
-        console.error(err);
+        safeLog.error('Login error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -86,6 +108,8 @@ const googleAuthSuccess = async (req, res) => {
         const user = req.user;
         const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: JWT_EXPIRY });
         
+        safeLog.info('Google auth successful', process.env.NODE_ENV !== 'production' ? user.email : 'Email hidden');
+        
         // User data to return
         const userData = {
             id: user._id,
@@ -94,13 +118,15 @@ const googleAuthSuccess = async (req, res) => {
             profilePicture: user.profilePicture
         };
         
-        // Redirect to frontend with token
+        // Redirect to frontend with token (avoid logging the full URL with token)
         const frontendURL = process.env.NODE_ENV === 'production' 
             ? 'https://pollx.netlify.app'
             : 'http://localhost:5173';
+        
+        safeLog.info('Redirecting to frontend after Google auth');
         res.redirect(`${frontendURL}/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`);
     } catch (err) {
-        console.error(err);
+        safeLog.error('Google auth error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
@@ -118,14 +144,17 @@ const verifyToken = (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     
     if (!token) {
+        safeLog.info('Access denied - no token provided');
         return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
     
     try {
         const verified = jwt.verify(token, JWT_SECRET);
         req.user = verified;
+        safeLog.info('Token verified successfully');
         next();
     } catch (err) {
+        safeLog.error('Invalid token provided:', err);
         res.status(401).json({ error: 'Invalid token' });
     }
 };
@@ -139,7 +168,7 @@ const getCurrentUser = async (req, res) => {
         }
         res.json(user);
     } catch (err) {
-        console.error(err);
+        safeLog.error('Get current user error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };
