@@ -67,7 +67,11 @@ const pollSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User' 
   }],
-  comments: [commentSchema]
+  comments: [commentSchema],
+  expiresAt: {
+    type: Date,
+    default: null // null means no expiry
+  }
 }, {
   timestamps: true // This automatically adds createdAt and updatedAt
 });

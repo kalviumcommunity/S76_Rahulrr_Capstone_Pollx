@@ -4,6 +4,8 @@ import { FaUser, FaClock, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-ico
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import CommentsSection from './CommentsSection';
+import PollActionBar from './PollActionBar';
+import { isExpired, formatExpiryDisplay } from '../utils/pollExpiry';
 
 const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
@@ -34,6 +36,12 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
 
   const handleVote = async (optionId) => {
     if (voting || hasVoted || disableVoting || !isLoggedIn) return;
+
+    // Check if poll is expired
+    if (isExpired(localPoll.expiresAt)) {
+      alert('This poll has expired and voting is no longer allowed.');
+      return;
+    }
 
     try {
       setVoting(true);
@@ -116,25 +124,43 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
             </span>
           )}
         </div>
+
+        {/* Expiry Status */}
+        {localPoll.expiresAt && (
+          <div className={`mb-4 p-3 rounded-lg border ${
+            isExpired(localPoll.expiresAt) 
+              ? 'bg-red-900/20 border-red-800' 
+              : 'bg-yellow-900/20 border-yellow-800'
+          }`}>
+            <div className={`flex items-center text-sm font-medium ${
+              isExpired(localPoll.expiresAt) ? 'text-red-400' : 'text-yellow-400'
+            }`}>
+              <FaClock className="mr-2" />
+              {formatExpiryDisplay(localPoll.expiresAt)}
+            </div>
+          </div>
+        )}
         
         {/* Poll Options */}
         <div className="space-y-3">
           {localPoll.options && localPoll.options.map((option, index) => {
             const isVotedOption = isOptionVoted(option._id);
             const isCurrentVoting = voting && votedOptionId === option._id;
+            const pollExpired = isExpired(localPoll.expiresAt);
+            const canVote = !hasVoted && !disableVoting && isLoggedIn && !pollExpired;
             
             return (
               <motion.div 
                 key={option._id || index} 
-                whileHover={!hasVoted && !disableVoting ? { scale: 1.02 } : {}}
+                whileHover={canVote ? { scale: 1.02 } : {}}
                 className={`bg-gray-800 rounded-lg p-4 border transition-all duration-200 ${
                   isVotedOption 
                     ? 'border-[#FF2D2D] bg-red-900/20' 
-                    : hasVoted || disableVoting || !isLoggedIn
-                      ? 'border-gray-600'
-                      : 'border-gray-600 hover:border-gray-500 cursor-pointer'
+                    : canVote
+                      ? 'border-gray-600 hover:border-gray-500 cursor-pointer'
+                      : 'border-gray-600'
                 }`}
-                onClick={!hasVoted && !disableVoting && isLoggedIn ? () => handleVote(option._id) : undefined}
+                onClick={canVote ? () => handleVote(option._id) : undefined}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center flex-1">
@@ -152,6 +178,8 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
                           </div>
                         ) : hasVoted ? (
                           <span className="text-gray-500 text-sm">—</span>
+                        ) : pollExpired ? (
+                          <span className="text-red-400 text-sm font-medium">Expired</span>
                         ) : !isLoggedIn ? (
                           <motion.a
                             href="/login"
@@ -241,25 +269,18 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
           )}
         </div>
 
-        {/* Total Votes and Delete Button */}
-        <div className="flex items-center space-x-4">
-          <div className="text-[#FF2D2D] font-bold">
-            {getTotalVotes()} total votes
-          </div>
-          
-          {/* Delete Button for My Polls */}
-          {showActions && onDelete && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onDelete(localPoll)}
-              className="flex items-center px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Delete
-            </motion.button>
-          )}
+        {/* Total Votes */}
+        <div className="text-[#FF2D2D] font-bold">
+          {getTotalVotes()} total votes
         </div>
       </div>
+
+      {/* Poll Action Bar */}
+      <PollActionBar 
+        poll={localPoll}
+        showActions={showActions}
+        onDelete={onDelete}
+      />
 
       {/* Comments Section */}
       <CommentsSection 

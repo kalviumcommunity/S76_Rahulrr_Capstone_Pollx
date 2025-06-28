@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPoll, FaPlus, FaTimes, FaSpinner } from 'react-icons/fa';
+import { FaPoll, FaPlus, FaTimes, FaSpinner, FaClock } from 'react-icons/fa';
 import axios from 'axios';
+import { EXPIRY_OPTIONS } from '../utils/pollExpiry';
 
 // Create API instance with the same configuration as auth.js
 const API_URL = import.meta.env.PROD 
@@ -27,7 +28,8 @@ const CreatePoll = () => {
   const [formData, setFormData] = useState({
     question: '',
     options: ['', ''],
-    category: 'Other'
+    category: 'Other',
+    expiryOption: 'no-expiry'
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -46,6 +48,13 @@ const CreatePoll = () => {
     setFormData({
       ...formData,
       category: e.target.value
+    });
+  };
+
+  const handleExpiryChange = (e) => {
+    setFormData({
+      ...formData,
+      expiryOption: e.target.value
     });
   };
 
@@ -117,7 +126,8 @@ const CreatePoll = () => {
       const pollData = {
         question: formData.question.trim(),
         options: validOptions.map(option => option.trim()),
-        category: formData.category
+        category: formData.category,
+        expiryOption: formData.expiryOption
       };
       
       // Use the configured API instance instead of fetch
@@ -128,7 +138,8 @@ const CreatePoll = () => {
       setFormData({
         question: '',
         options: ['', ''],
-        category: 'Other'
+        category: 'Other',
+        expiryOption: 'no-expiry'
       });
       
       // Navigate to dashboard after a brief delay
@@ -216,6 +227,30 @@ const CreatePoll = () => {
                 <option value="Business">Business</option>
                 <option value="Other">Other</option>
               </select>
+            </div>
+
+            {/* Poll Expiry */}
+            <div>
+              <label htmlFor="expiry" className="block text-gray-300 text-sm font-medium mb-2">
+                <FaClock className="inline mr-2" />
+                Poll Expiry
+              </label>
+              <select
+                id="expiry"
+                className="w-full px-4 py-3 bg-black text-white border border-gray-700 rounded-lg focus:outline-none focus:border-[#FF2D2D] focus:ring-1 focus:ring-[#FF2D2D] transition-colors"
+                value={formData.expiryOption}
+                onChange={handleExpiryChange}
+                disabled={isLoading}
+              >
+                {EXPIRY_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-sm text-gray-400 mt-1">
+                Set when this poll should stop accepting votes
+              </p>
             </div>
 
             {/* Options */}

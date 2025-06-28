@@ -4,7 +4,7 @@ const User = require('../models/User');
 // Create a new poll
 const createPoll = async (req, res) => {
   try {
-    const { question, options, category } = req.body;
+    const { question, options, category, expiryOption } = req.body;
 
     // Validation
     if (!question || !question.trim()) {
@@ -41,6 +41,23 @@ const createPoll = async (req, res) => {
       });
     }
 
+    // Calculate expiry date
+    let expiresAt = null;
+    if (expiryOption && expiryOption !== 'no-expiry') {
+      const now = new Date();
+      switch (expiryOption) {
+        case '1-day':
+          expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          break;
+        case '3-days':
+          expiresAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+          break;
+        case '1-week':
+          expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+          break;
+      }
+    }
+
     // Check if user exists
     const user = await User.findById(req.user.id);
     if (!user) {
@@ -59,7 +76,8 @@ const createPoll = async (req, res) => {
       question: question.trim(),
       options: formattedOptions,
       category: category || 'Other',
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      expiresAt: expiresAt
     });
 
     const savedPoll = await newPoll.save();
@@ -178,6 +196,13 @@ const votePoll = async (req, res) => {
     if (!poll) {
       return res.status(404).json({ 
         error: 'Poll not found' 
+      });
+    }
+
+    // Check if poll has expired
+    if (poll.expiresAt && new Date() > poll.expiresAt) {
+      return res.status(400).json({ 
+        error: 'This poll has expired and no longer accepts votes' 
       });
     }
 

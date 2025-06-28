@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import PollCard from './PollCard';
 import socket from '../socket';
@@ -11,6 +12,7 @@ const PollFeed = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
 
   const API_URL = import.meta.env.PROD 
@@ -18,10 +20,28 @@ const PollFeed = () => {
     : 'http://localhost:5000';
 
   const categories = ['All', 'Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'];
+  const highlightPollId = searchParams.get('highlight');
 
   useEffect(() => {
     fetchPolls();
   }, [selectedCategory]);
+
+  // Scroll to highlighted poll when polls are loaded
+  useEffect(() => {
+    if (highlightPollId && polls.length > 0) {
+      setTimeout(() => {
+        const pollElement = document.getElementById(`poll-${highlightPollId}`);
+        if (pollElement) {
+          pollElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Add a highlight effect
+          pollElement.style.border = '2px solid #FF2D2D';
+          setTimeout(() => {
+            pollElement.style.border = '';
+          }, 3000);
+        }
+      }, 100);
+    }
+  }, [highlightPollId, polls]);
 
   // Real-time vote updates
   useEffect(() => {
@@ -306,7 +326,11 @@ const PollFeed = () => {
             className="grid gap-6 md:gap-8"
           >
             {polls.map((poll, index) => (
-              <motion.div key={poll._id || index} variants={itemVariants}>
+              <motion.div 
+                key={poll._id || index} 
+                variants={itemVariants}
+                id={`poll-${poll._id}`}
+              >
                 <PollCard 
                   poll={poll} 
                   showActions={false}
