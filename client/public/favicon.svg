@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <rect width="32" height="32" fill="#000000" rx="6"/>
+  <g transform="translate(8, 8)">
+    <!-- Poll icon similar to FaPoll -->
+    <rect x="2" y="6" width="3" height="10" fill="#FF2D2D"/>
+    <rect x="6" y="3" width="3" height="13" fill="#FF2D2D"/>
+    <rect x="10" y="8" width="3" height="8" fill="#FF2D2D"/>
+    <circle cx="3.5" cy="4.5" r="1.5" fill="#FF2D2D"/>
+    <circle cx="7.5" cy="1.5" r="1.5" fill="#FF2D2D"/>
+    <circle cx="11.5" cy="6.5" r="1.5" fill="#FF2D2D"/>
+  </g>
+</svg>

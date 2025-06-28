@@ -1,0 +1,21 @@
+{
+  "name": "PollX - Interactive Polling Platform",
+  "short_name": "PollX",
+  "description": "Create engaging polls and gather real-time insights with AI-powered poll generation",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#FF2D2D",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    }
+  ]
+}
