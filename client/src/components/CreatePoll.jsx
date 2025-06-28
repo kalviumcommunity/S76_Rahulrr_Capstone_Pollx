@@ -38,7 +38,15 @@ const CreatePoll = () => {
   // AI generation state
   const [aiTopic, setAiTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showAiSection, setShowAiSection] = useState(false);
+
+  // Cleanup function for component unmount
+  useEffect(() => {
+    return () => {
+      // Clear any ongoing AI generation state
+      setIsGenerating(false);
+      setAiTopic('');
+    };
+  }, []);
 
   // Handle AI topic change
   const handleAiTopicChange = (e) => {
@@ -71,7 +79,6 @@ const CreatePoll = () => {
           options: response.data.poll.options
         }));
         setSuccess('Poll generated successfully! You can edit it before creating.');
-        setShowAiSection(false);
         setAiTopic('');
       }
     } catch (error) {
@@ -184,7 +191,7 @@ const CreatePoll = () => {
       // Use the configured API instance instead of fetch
       const response = await api.post('/polls', pollData);
 
-      // Success
+      // Success - clear all form state including AI success message
       setSuccess('Poll created successfully!');
       setFormData({
         question: '',
@@ -192,6 +199,10 @@ const CreatePoll = () => {
         category: 'Other',
         expiryOption: 'no-expiry'
       });
+      
+      // Clear AI generation state
+      setAiTopic('');
+      setIsGenerating(false);
       
       // Navigate to dashboard after a brief delay
       setTimeout(() => {

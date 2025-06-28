@@ -1,5 +1,11 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// Validate Gemini API key on startup
+if (!process.env.GEMINI_API_KEY) {
+  console.error('FATAL ERROR: GEMINI_API_KEY environment variable is not set');
+  process.exit(1);
+}
+
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -46,33 +52,50 @@ Respond ONLY with valid JSON in this exact format:
 Topic: ${topic.trim()}`;
 
     // Generate content with simple format for Gemini API
-    console.log('Making Gemini API call with topic:', topic.trim());
+    console.log('Making Gemini API call for poll generation');
     
     const result = await model.generateContent(prompt);
 
     const response = await result.response;
     const text = response.text();
     
-    console.log('AI Response:', text);
+    // Log only in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('AI Response:', text);
+    }
 
-    // Parse the JSON response
+    // Parse the JSON response with improved error handling
     let pollData;
     try {
-      // Clean the response - remove any markdown formatting
-      const cleanedText = text
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .replace(/`/g, '')
+      // More comprehensive cleaning of AI response
+      let cleanedText = text.trim();
+      
+      // Remove various markdown code block formats
+      cleanedText = cleanedText
+        .replace(/^```(?:json)?\s*/gm, '')  // Remove opening code blocks
+        .replace(/```\s*$/gm, '')          // Remove closing code blocks
+        .replace(/`{1,3}/g, '')            // Remove any remaining backticks
+        .replace(/^\s*[\r\n]+/gm, '')      // Remove empty lines
         .trim();
+      
+      // Try to extract JSON if wrapped in other text
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedText = jsonMatch[0];
+      }
       
       pollData = JSON.parse(cleanedText);
     } catch (parseError) {
-      console.error('JSON Parse Error:', parseError);
-      console.error('Raw AI Response:', text);
+      console.error('JSON Parse Error:', parseError.message);
+      
+      // Log raw response only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Raw AI Response:', text);
+      }
       
       return res.status(500).json({
         error: true,
-        message: 'Failed to parse AI response. Please try again with a different topic.'
+        message: 'AI generated an invalid response format. Please try again with a different topic.'
       });
     }
 
@@ -112,12 +135,18 @@ Topic: ${topic.trim()}`;
     });
 
   } catch (error) {
-    console.error('AI Poll Generation Error:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      response: error.response?.data || 'No response data'
-    });
+    // Log error details appropriately for environment
+    if (process.env.NODE_ENV === 'development') {
+      console.error('AI Poll Generation Error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.data || 'No response data'
+      });
+    } else {
+      // Production: Log only essential info without sensitive data
+      console.error('AI Poll Generation Error:', error.message);
+    }
     
     // Handle specific API errors
     if (error.message && error.message.includes('API key')) {

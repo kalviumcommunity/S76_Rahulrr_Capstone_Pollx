@@ -16,7 +16,8 @@ const requiredEnvVars = [
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
   'GOOGLE_CALLBACK_URL',
-  'SESSION_SECRET'
+  'SESSION_SECRET',
+  'GEMINI_API_KEY'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
