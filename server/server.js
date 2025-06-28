@@ -22,8 +22,11 @@ const requiredEnvVars = [
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 if (missingEnvVars.length > 0) {
-  console.error('Missing required environment variables:', missingEnvVars);
-  console.error('Available environment variables:', Object.keys(process.env).filter(key => key.includes('GOOGLE') || key.includes('JWT') || key.includes('DB') || key.includes('SESSION')));
+  console.error('❌ Missing required environment variables:', missingEnvVars);
+  console.error('Available environment variables:', Object.keys(process.env).filter(key => 
+    key.includes('GOOGLE') || key.includes('JWT') || key.includes('DB') || key.includes('SESSION') || key.includes('GEMINI')
+  ));
+  console.error('Please check your environment variables in the deployment platform');
   process.exit(1);
 }
 
@@ -54,11 +57,19 @@ const server = http.createServer(app);
 // Configure Socket.IO with CORS
 const io = socketIo(server, {
   cors: {
-    origin: [
-      "http://localhost:5173", 
-      "https://pollx.netlify.app",
-      "http://localhost:3000"
-    ],
+    origin: process.env.NODE_ENV === 'production'
+      ? [
+          "https://pollx.netlify.app",
+          "https://s76-rahulrr-capstone-pollx.onrender.com",
+          "https://pollx-frontend.netlify.app"
+        ]
+      : [
+          "http://localhost:5173", 
+          "http://localhost:5174",
+          "http://localhost:5175",
+          "http://localhost:3000",
+          "http://127.0.0.1:5173"
+        ],
     methods: ["GET", "POST"],
     credentials: true
   },
@@ -68,7 +79,8 @@ const io = socketIo(server, {
   transports: ['websocket', 'polling'],
   reconnection: true,
   reconnectionAttempts: 5,
-  reconnectionDelay: 1000
+  reconnectionDelay: 1000,
+  allowEIO3: true // Support for older clients
 });
 
 // Make io instance available globally
@@ -77,12 +89,39 @@ app.set('io', io);
 const PORT = process.env.PORT || 5000;
 
 
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://pollx.netlify.app', 'https://s76-rahulrr-capstone-pollx.onrender.com']
-    : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5000'],
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? [
+          'https://pollx.netlify.app',
+          'https://s76-rahulrr-capstone-pollx.onrender.com',
+          'https://pollx-frontend.netlify.app' // In case of different domain
+        ]
+      : [
+          'http://localhost:5173',
+          'http://localhost:5174', 
+          'http://localhost:5175',
+          'http://localhost:5000',
+          'http://localhost:3000',
+          'http://127.0.0.1:5173'
+        ];
+    
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log(`❌ CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200 // Support legacy browsers
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -153,6 +192,45 @@ app.use('/auth', authRoutes);
 app.use('/polls', pollRoutes);
 app.use('/api', aiRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development',
+    version: require('./package.json').version
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'PollX API Server is running!',
+    status: 'online',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// General 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -201,17 +279,72 @@ io.on('connection', (socket) => {
   });
 });
 
-connectDB();
+connectDB().catch(err => {
+  console.error('❌ Database connection failed:', err);
+  process.exit(1);
+});
 
 // Initialize database watcher after database connection
 mongoose.connection.once('open', () => {
   console.log('✅ MongoDB connected successfully');
   
   // Initialize database change watcher
-  const dbWatcher = new DatabaseWatcher(io);
-  console.log('🔍 Database watcher initialized');
+  try {
+    const dbWatcher = new DatabaseWatcher(io);
+    console.log('🔍 Database watcher initialized');
+  } catch (error) {
+    console.error('⚠️ Database watcher failed to initialize:', error);
+  }
 });
 
-server.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`)
+// Handle database connection errors
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB disconnected');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\n⚠️ Received SIGINT. Graceful shutdown initiated...');
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    mongoose.connection.close(false, () => {
+      console.log('✅ MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n⚠️ Received SIGTERM. Graceful shutdown initiated...');
+  server.close(() => {
+    console.log('✅ HTTP server closed');
+    mongoose.connection.close(false, () => {
+      console.log('✅ MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
 });

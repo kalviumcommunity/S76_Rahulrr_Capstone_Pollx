@@ -1,43 +1,41 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { FaUser, FaClock, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  FaUser, FaClock, FaVoteYea, FaCheck, FaSpinner, FaTag, 
+  FaFire, FaChartBar, FaShare, FaLink, FaTrash, FaEllipsisV,
+  FaHeart, FaComment, FaWhatsapp, FaTwitter
+} from 'react-icons/fa';
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import CommentsSection from './CommentsSection';
-import PollActionBar from './PollActionBar';
-import { isExpired, formatExpiryDisplay } from '../utils/pollExpiry';
+import { isExpired, getTimeRemaining } from '../utils/pollExpiry';
 
 const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
   const [voting, setVoting] = useState(false);
   const [votedOptionId, setVotedOptionId] = useState(null);
   const [localPoll, setLocalPoll] = useState(poll);
+  const [showComments, setShowComments] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [hasVoted, setHasVoted] = useState(() => {
-    // Check if user has already voted on this poll (from localStorage)
     const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
     return votedPolls[poll._id] || false;
   });
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
 
   const getTotalVotes = () => {
     if (!localPoll.options || !Array.isArray(localPoll.options)) return 0;
     return localPoll.options.reduce((total, option) => total + (option.votes || 0), 0);
   };
 
+  const getVotePercentage = (votes) => {
+    const total = getTotalVotes();
+    return total > 0 ? Math.round((votes / total) * 100) : 0;
+  };
+
   const handleVote = async (optionId) => {
     if (voting || hasVoted || disableVoting || !isLoggedIn) return;
 
-    // Check if poll is expired
     if (isExpired(localPoll.expiresAt)) {
       alert('This poll has expired and voting is no longer allowed.');
       return;
@@ -47,35 +45,29 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
       setVoting(true);
       setVotedOptionId(optionId);
 
-      // Call the voting API
       const response = await votePoll(poll._id, optionId);
       
       if (response.success && response.poll) {
-        // Update local state with the new poll data
         setLocalPoll(response.poll);
         
-        // Mark as voted in localStorage
         const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
         votedPolls[poll._id] = optionId;
         localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
         
         setHasVoted(true);
         
-        // Call parent component's onVote if provided
         if (onVote) {
           onVote(response.poll);
         }
       }
     } catch (error) {
       console.error('Error voting:', error);
-      // Show error message (you could add a toast notification here)
       if (error.error === 'Access denied. No token provided.') {
         alert('Please log in to vote on polls.');
       } else if (error.error === 'You have already voted on this poll') {
-        // User already voted, update UI to reflect this
         setHasVoted(true);
         const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
-        votedPolls[poll._id] = true; // Mark as voted without specific option
+        votedPolls[poll._id] = true;
         localStorage.setItem('votedPolls', JSON.stringify(votedPolls));
         alert('You have already voted on this poll.');
       } else {
@@ -87,206 +79,342 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
     }
   };
 
+  const handleShare = (platform) => {
+    const pollUrl = `${window.location.origin}/poll/${poll._id}?src=${platform}`;
+    const text = `Check out this poll: "${poll.question}"`;
+    
+    switch (platform) {
+      case 'copy':
+        navigator.clipboard.writeText(pollUrl);
+        alert('Poll link copied to clipboard!');
+        break;
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${pollUrl}`)}`, '_blank');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pollUrl)}`, '_blank');
+        break;
+      case 'native':
+        if (navigator.share) {
+          navigator.share({
+            title: 'PollX Poll',
+            text: text,
+            url: pollUrl
+          });
+        }
+        break;
+    }
+    setShowShareMenu(false);
+  };
+
   const isOptionVoted = (optionId) => {
     const votedPolls = JSON.parse(localStorage.getItem('votedPolls') || '{}');
     return votedPolls[poll._id] === optionId;
   };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const getCategoryBadge = () => {
+    const badges = {
+      Technology: { emoji: '💻', color: 'badge-category' },
+      Sports: { emoji: '⚽', color: 'badge-category' },
+      Entertainment: { emoji: '🎬', color: 'badge-category' },
+      Politics: { emoji: '🏛️', color: 'badge-category' },
+      Education: { emoji: '📚', color: 'badge-category' },
+      Health: { emoji: '🏥', color: 'badge-category' },
+      Business: { emoji: '💼', color: 'badge-category' },
+      Other: { emoji: '📋', color: 'badge-category' }
+    };
+    
+    const badge = badges[localPoll.category] || badges.Other;
+    return { ...badge };
+  };
+
+  const getTrendingStatus = () => {
+    const totalVotes = getTotalVotes();
+    const isRecent = new Date() - new Date(localPoll.createdAt) < 24 * 60 * 60 * 1000; // Last 24 hours
+    
+    if (totalVotes > 50 && isRecent) return { emoji: '🔥', text: 'Trending', class: 'badge-trending' };
+    if (totalVotes > 20) return { emoji: '📈', text: 'Popular', class: 'badge-trending' };
+    if (isRecent) return { emoji: '✨', text: 'New', class: 'badge-category' };
+    return null;
+  };
+
+  const getExpiryStatus = () => {
+    if (!localPoll.expiresAt) return null;
+    
+    if (isExpired(localPoll.expiresAt)) {
+      return { emoji: '🔒', text: 'Expired', class: 'badge-expiring' };
+    }
+    
+    const remaining = getTimeRemaining(localPoll.expiresAt);
+    if (remaining) {
+      return { emoji: '⏳', text: `${remaining}`, class: 'badge-expiring' };
+    }
+    
+    return null;
+  };
+
+  const pollExpired = isExpired(localPoll.expiresAt);
+  const canVote = !hasVoted && !disableVoting && isLoggedIn && !pollExpired;
+  const category = getCategoryBadge();
+  const trending = getTrendingStatus();
+  const expiry = getExpiryStatus();
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      whileHover={{ y: -5, transition: { duration: 0.3 } }}
-      className="bg-[#2B2B2B] border border-gray-700 rounded-lg p-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-gray-600"
+      className="card group relative overflow-hidden"
     >
-      {/* Poll Question */}
-      <div className="mb-6">
-        <div className="flex items-start justify-between mb-4">
-          <h3 className="text-xl font-bold text-white leading-relaxed flex-1">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xl font-bold text-white mb-3 leading-tight group-hover:text-gradient transition-all duration-300">
             {localPoll.question}
           </h3>
           
-          {/* Category Badge */}
-          {localPoll.category && (
-            <span className={`ml-4 px-3 py-1 text-white text-xs font-medium rounded-full whitespace-nowrap flex items-center ${
-              localPoll.category === 'Technology' ? 'bg-blue-600' :
-              localPoll.category === 'Sports' ? 'bg-green-600' :
-              localPoll.category === 'Entertainment' ? 'bg-purple-600' :
-              localPoll.category === 'Politics' ? 'bg-red-700' :
-              localPoll.category === 'Education' ? 'bg-indigo-600' :
-              localPoll.category === 'Health' ? 'bg-pink-600' :
-              localPoll.category === 'Business' ? 'bg-yellow-600' :
-              'bg-[#FF2D2D]'
-            }`}>
-              <FaTag className="mr-1" />
-              {localPoll.category}
+          {/* Badges */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className={`badge ${category.color}`}>
+              <span>{category.emoji}</span>
+              <span>{localPoll.category}</span>
             </span>
-          )}
+            
+            {trending && (
+              <span className={`badge ${trending.class}`}>
+                <span>{trending.emoji}</span>
+                <span>{trending.text}</span>
+              </span>
+            )}
+            
+            {expiry && (
+              <span className={`badge ${expiry.class}`}>
+                <span>{expiry.emoji}</span>
+                <span>{expiry.text}</span>
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Expiry Status */}
-        {localPoll.expiresAt && (
-          <div className={`mb-4 p-3 rounded-lg border ${
-            isExpired(localPoll.expiresAt) 
-              ? 'bg-red-900/20 border-red-800' 
-              : 'bg-yellow-900/20 border-yellow-800'
-          }`}>
-            <div className={`flex items-center text-sm font-medium ${
-              isExpired(localPoll.expiresAt) ? 'text-red-400' : 'text-yellow-400'
-            }`}>
-              <FaClock className="mr-2" />
-              {formatExpiryDisplay(localPoll.expiresAt)}
-            </div>
-          </div>
-        )}
-        
-        {/* Poll Options */}
-        <div className="space-y-3">
-          {localPoll.options && localPoll.options.map((option, index) => {
-            const isVotedOption = isOptionVoted(option._id);
-            const isCurrentVoting = voting && votedOptionId === option._id;
-            const pollExpired = isExpired(localPoll.expiresAt);
-            const canVote = !hasVoted && !disableVoting && isLoggedIn && !pollExpired;
-            
-            return (
-              <motion.div 
-                key={option._id || index} 
-                whileHover={canVote ? { scale: 1.02 } : {}}
-                className={`bg-gray-800 rounded-lg p-4 border transition-all duration-200 ${
-                  isVotedOption 
-                    ? 'border-[#FF2D2D] bg-red-900/20' 
-                    : canVote
-                      ? 'border-gray-600 hover:border-gray-500 cursor-pointer'
-                      : 'border-gray-600'
-                }`}
-                onClick={canVote ? () => handleVote(option._id) : undefined}
+        {/* Actions Menu */}
+        <div className="relative">
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowActionsMenu(!showActionsMenu)}
+            className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+          >
+            <FaEllipsisV />
+          </motion.button>
+          
+          <AnimatePresence>
+            {showActionsMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                className="absolute right-0 top-12 bg-gray-800 border border-gray-700 rounded-xl shadow-xl z-20 min-w-48"
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center flex-1">
-                    <span className="text-gray-200 font-medium flex-1">{option.text}</span>
-                    
-                    {/* Vote Button or Status */}
-                    {!disableVoting && (
-                      <div className="ml-4">
-                        {isCurrentVoting ? (
-                          <FaSpinner className="text-[#FF2D2D] animate-spin" />
-                        ) : isVotedOption ? (
-                          <div className="flex items-center text-[#FF2D2D]">
-                            <FaCheck className="mr-1" />
-                            <span className="text-sm font-medium">Voted</span>
-                          </div>
-                        ) : hasVoted ? (
-                          <span className="text-gray-500 text-sm">—</span>
-                        ) : pollExpired ? (
-                          <span className="text-red-400 text-sm font-medium">Expired</span>
-                        ) : !isLoggedIn ? (
-                          <motion.a
-                            href="/login"
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="flex items-center px-3 py-1 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-                          >
-                            <FaVoteYea className="mr-1" />
-                            Login to Vote
-                          </motion.a>
-                        ) : (
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="flex items-center px-3 py-1 bg-[#FF2D2D] text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleVote(option._id);
-                            }}
-                          >
-                            <FaVoteYea className="mr-1" />
-                            Vote
-                          </motion.button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {option.votes !== undefined && (
-                    <span className="text-[#FF2D2D] font-bold text-sm ml-4">
-                      {option.votes} votes
-                    </span>
-                  )}
-                </div>
+                <button
+                  onClick={() => setShowShareMenu(true)}
+                  className="w-full px-4 py-3 text-left text-gray-300 hover:text-white hover:bg-gray-700 rounded-t-xl transition-colors flex items-center space-x-2"
+                >
+                  <FaShare className="text-sm" />
+                  <span>Share Poll</span>
+                </button>
                 
-                {/* Vote Progress Bar */}
-                {option.votes !== undefined && getTotalVotes() > 0 && (
-                  <div className="mt-3">
-                    <div className="w-full bg-gray-700 rounded-full h-2">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(option.votes / getTotalVotes()) * 100}%` }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          isVotedOption 
-                            ? 'bg-gradient-to-r from-[#FF2D2D] to-red-400' 
-                            : 'bg-gradient-to-r from-[#FF2D2D] to-red-600'
-                        }`}
-                      ></motion.div>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-400 mt-1">
-                      <span>{((option.votes / getTotalVotes()) * 100).toFixed(1)}%</span>
-                    </div>
-                  </div>
+                {showActions && onDelete && (
+                  <button
+                    onClick={() => onDelete(poll._id)}
+                    className="w-full px-4 py-3 text-left text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-b-xl transition-colors flex items-center space-x-2"
+                  >
+                    <FaTrash className="text-sm" />
+                    <span>Delete Poll</span>
+                  </button>
                 )}
               </motion.div>
-            );
-          })}
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Voting Status */}
-      {hasVoted && !disableVoting && (
-        <div className="mb-4 p-3 bg-green-900/20 border border-green-800 rounded-lg">
-          <div className="flex items-center text-green-400">
-            <FaCheck className="mr-2" />
-            <span className="text-sm font-medium">Thank you for voting!</span>
+      {/* Poll Options */}
+      <div className="space-y-3 mb-6">
+        {localPoll.options && localPoll.options.map((option, index) => {
+          const isVotedOption = isOptionVoted(option._id);
+          const isCurrentVoting = voting && votedOptionId === option._id;
+          const percentage = getVotePercentage(option.votes || 0);
+          
+          return (
+            <motion.div
+              key={option._id}
+              whileHover={canVote ? { scale: 1.02 } : {}}
+              whileTap={canVote ? { scale: 0.98 } : {}}
+            >
+              <button
+                onClick={() => handleVote(option._id)}
+                disabled={!canVote || isCurrentVoting}
+                className={`poll-option w-full relative overflow-hidden ${
+                  isVotedOption ? 'bg-gradient-to-r from-red-500/20 to-red-600/20 border-red-500/50' : ''
+                } ${!canVote ? 'cursor-default' : 'hover:scale-102'}`}
+              >
+                {/* Background Bar */}
+                {(hasVoted || pollExpired) && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 0.8, delay: index * 0.1 }}
+                    className="absolute left-0 top-0 h-full bg-gradient-to-r from-red-500/10 to-red-600/10 rounded-xl"
+                  />
+                )}
+                
+                <div className="relative z-10 flex items-center justify-between p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      isVotedOption 
+                        ? 'bg-red-500 border-red-500' 
+                        : 'border-gray-500 group-hover:border-red-400'
+                    }`}>
+                      {isCurrentVoting ? (
+                        <FaSpinner className="animate-spin text-white text-xs" />
+                      ) : isVotedOption ? (
+                        <FaCheck className="text-white text-xs" />
+                      ) : null}
+                    </div>
+                    
+                    <span className="font-medium text-white text-left">
+                      {option.text}
+                    </span>
+                  </div>
+                  
+                  {(hasVoted || pollExpired) && (
+                    <div className="flex items-center space-x-2 text-sm">
+                      <span className="text-gray-400">{option.votes || 0} votes</span>
+                      <span className="text-red-400 font-semibold">{percentage}%</span>
+                    </div>
+                  )}
+                </div>
+              </button>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+        <div className="flex items-center space-x-4 text-sm text-gray-400">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+              <FaUser className="text-white text-xs" />
+            </div>
+            <span>{localPoll.createdBy?.username || 'Anonymous'}</span>
+          </div>
+          
+          <div className="flex items-center space-x-1">
+            <FaClock className="text-xs" />
+            <span>{formatDate(localPoll.createdAt)}</span>
           </div>
         </div>
-      )}
-
-      {/* Poll Metadata */}
-      <div className="flex justify-between items-center text-sm text-gray-400 border-t border-gray-600 pt-4">
-        <div className="flex items-center space-x-4">
-          {localPoll.createdBy && (
-            <div className="flex items-center space-x-2">
-              <FaUser className="text-xs text-[#FF2D2D]" />
-              <span>{localPoll.createdBy.username || localPoll.createdBy.email || 'Anonymous'}</span>
-            </div>
-          )}
+        
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 text-sm text-gray-400">
+            <FaChartBar className="text-xs" />
+            <span>{getTotalVotes()} votes</span>
+          </div>
           
-          {localPoll.createdAt && (
-            <div className="flex items-center space-x-2">
-              <FaClock className="text-xs text-[#FF2D2D]" />
-              <span>{formatDate(localPoll.createdAt)}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Total Votes */}
-        <div className="text-[#FF2D2D] font-bold">
-          {getTotalVotes()} total votes
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowComments(!showComments)}
+            className="flex items-center space-x-1 text-sm text-gray-400 hover:text-red-400 transition-colors"
+          >
+            <FaComment className="text-xs" />
+            <span>Comments</span>
+          </motion.button>
         </div>
       </div>
 
-      {/* Poll Action Bar */}
-      <PollActionBar 
-        poll={localPoll}
-        showActions={showActions}
-        onDelete={onDelete}
-      />
-
       {/* Comments Section */}
-      <CommentsSection 
-        pollId={localPoll._id} 
-        initialCommentCount={localPoll.comments?.length || 0}
-      />
+      <AnimatePresence>
+        {showComments && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-6 pt-6 border-t border-gray-700"
+          >
+            <CommentsSection pollId={poll._id} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Menu Modal */}
+      <AnimatePresence>
+        {showShareMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowShareMenu(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-gray-800 border border-gray-700 rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-white mb-4">Share this poll</h3>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleShare('copy')}
+                  className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                >
+                  <FaLink className="text-lg" />
+                  <span>Copy Link</span>
+                </button>
+                
+                <button
+                  onClick={() => handleShare('whatsapp')}
+                  className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                >
+                  <FaWhatsapp className="text-lg text-green-500" />
+                  <span>Share on WhatsApp</span>
+                </button>
+                
+                <button
+                  onClick={() => handleShare('twitter')}
+                  className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                >
+                  <FaTwitter className="text-lg text-blue-400" />
+                  <span>Share on Twitter</span>
+                </button>
+                
+                {navigator.share && (
+                  <button
+                    onClick={() => handleShare('native')}
+                    className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                  >
+                    <FaShare className="text-lg" />
+                    <span>More Options</span>
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };

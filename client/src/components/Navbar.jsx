@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaPoll, FaUser } from 'react-icons/fa';
+import { FaPoll, FaUser, FaSignOutAlt, FaBars, FaTimes, FaPlus, FaHome, FaChartBar } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -22,122 +23,191 @@ const Navbar = () => {
   };
   
   return (
-    <nav className="bg-black py-4 px-6 md:px-12 sticky top-0 z-50">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to={isLoggedIn ? "/polls" : "/"} className="flex items-center space-x-2">
-          <FaPoll className="text-[#FF2D2D] text-2xl" />
-          <span className="text-2xl font-bold text-white">Poll<span className="text-[#FF2D2D]">X</span></span>
-        </Link>
-        
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center space-x-8">
-          {isLoggedIn ? (
-            // Navigation items for logged-in users
-            <>
-              <Link to="/polls" className="text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
-              <Link to="/dashboard" className="text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
-              <Link to="/my-polls" className="text-white hover:text-[#FF2D2D] transition">My Polls</Link>
-              <Link to="/create-poll" className="text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
-            </>
-          ) : (
-            // Navigation items for visitors
-            <>
-              <Link to="/polls" className="text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
-              <a href="#features" className="text-white hover:text-[#FF2D2D] transition">Features</a>
-              <a href="#how-it-works" className="text-white hover:text-[#FF2D2D] transition">How It Works</a>
-              <a href="#categories" className="text-white hover:text-[#FF2D2D] transition">Categories</a>
-              <a href="#testimonials" className="text-white hover:text-[#FF2D2D] transition">Testimonials</a>
-            </>
-          )}
-        </div>
-        
-        <div className="hidden md:flex items-center space-x-4">
-          {isLoggedIn ? (
-            // User profile and logout for logged-in users
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-white">
-                <FaUser className="text-[#FF2D2D]" />
-                <span>{currentUser?.username || 'User'}</span>
-              </div>
-              <button 
-                onClick={handleLogout}
-                className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white"
-              >
-                Logout
-              </button>
+    <nav className="sticky top-0 z-50 backdrop-blur-md bg-black/80 border-b border-gray-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link 
+            to={isLoggedIn ? "/polls" : "/"} 
+            className="flex items-center space-x-3 group"
+          >
+            <div className="relative">
+              <FaPoll className="text-2xl text-gradient group-hover:scale-110 transition-transform duration-300" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-red-500 to-red-600 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
             </div>
-          ) : (
-            // Login and signup for visitors
-            <>
-              <Link to="/login" className="px-4 py-2 rounded hover:bg-[#2B2B2B] transition border border-white text-white">
-                Login
-              </Link>
-              <Link to="/signup" className="px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white">
-                Sign Up
-              </Link>
-            </>
-          )}
-        </div>
-        
-        {/* Mobile menu button */}
-        <div className="md:hidden">
-          <button onClick={toggleMenu} className="focus:outline-none text-white">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              {!isMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              )}
-            </svg>
-          </button>
+            <span className="text-2xl font-bold">
+              Poll<span className="text-gradient">X</span>
+            </span>
+          </Link>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {isLoggedIn ? (
+              <>
+                <NavLink to="/polls" icon={FaHome}>Browse</NavLink>
+                <NavLink to="/dashboard" icon={FaChartBar}>Dashboard</NavLink>
+                <NavLink to="/my-polls" icon={FaPoll}>My Polls</NavLink>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link 
+                    to="/create-poll" 
+                    className="btn-primary flex items-center space-x-2"
+                  >
+                    <FaPlus className="text-sm" />
+                    <span>Create Poll</span>
+                  </Link>
+                </motion.div>
+              </>
+            ) : (
+              <>
+                <NavLink to="/polls">Browse Polls</NavLink>
+                <a href="#features" className="nav-link">Features</a>
+                <a href="#how-it-works" className="nav-link">How It Works</a>
+                <a href="#categories" className="nav-link">Categories</a>
+              </>
+            )}
+          </div>
+          
+          {/* Desktop User Actions */}
+          <div className="hidden md:flex items-center space-x-4">
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-4">
+                {/* User Avatar */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+                    <FaUser className="text-white text-xs" />
+                  </div>
+                  <span className="text-gray-300 font-medium">
+                    {currentUser?.username || 'User'}
+                  </span>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="btn-outline flex items-center space-x-2"
+                >
+                  <FaSignOutAlt className="text-sm" />
+                  <span>Logout</span>
+                </motion.button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/login" className="btn-outline">
+                    Login
+                  </Link>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Link to="/signup" className="btn-primary">
+                    Sign Up
+                  </Link>
+                </motion.div>
+              </div>
+            )}
+          </div>
+          
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={toggleMenu}
+              className="p-2 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+            >
+              {isMenuOpen ? <FaTimes className="w-6 h-6" /> : <FaBars className="w-6 h-6" />}
+            </motion.button>
+          </div>
         </div>
       </div>
       
       {/* Mobile menu */}
-      {isMenuOpen && (
-        <div className="mt-4 md:hidden bg-[#2B2B2B] py-4 px-6 space-y-4 rounded-lg">
-          {isLoggedIn ? (
-            // Mobile nav for logged-in users
-            <>
-              <Link to="/polls" className="block text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
-              <Link to="/dashboard" className="block text-white hover:text-[#FF2D2D] transition">Dashboard</Link>
-              <Link to="/my-polls" className="block text-white hover:text-[#FF2D2D] transition">My Polls</Link>
-              <Link to="/create-poll" className="block text-white hover:text-[#FF2D2D] transition">Create Poll</Link>
-              <div className="pt-2 space-y-2">
-                <div className="flex items-center space-x-2 text-white">
-                  <FaUser className="text-[#FF2D2D]" />
-                  <span>{currentUser?.username || 'User'}</span>
-                </div>
-                <button 
-                  onClick={handleLogout}
-                  className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center"
-                >
-                  Logout
-                </button>
-              </div>
-            </>
-          ) : (
-            // Mobile nav for visitors
-            <>
-              <Link to="/polls" className="block text-white hover:text-[#FF2D2D] transition">Browse Polls</Link>
-              <a href="#features" className="block text-white hover:text-[#FF2D2D] transition">Features</a>
-              <a href="#how-it-works" className="block text-white hover:text-[#FF2D2D] transition">How It Works</a>
-              <a href="#categories" className="block text-white hover:text-[#FF2D2D] transition">Categories</a>
-              <a href="#testimonials" className="block text-white hover:text-[#FF2D2D] transition">Testimonials</a>
-              <div className="pt-2 space-y-2">
-                <Link to="/login" className="block w-full px-4 py-2 rounded hover:bg-black transition border border-white text-white text-center">
-                  Login
-                </Link>
-                <Link to="/signup" className="block w-full px-4 py-2 rounded bg-[#FF2D2D] hover:bg-red-700 transition text-white text-center">
-                  Sign Up
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="md:hidden border-t border-gray-800 bg-black/95 backdrop-blur-md"
+          >
+            <div className="px-4 py-6 space-y-4">
+              {isLoggedIn ? (
+                <>
+                  <MobileNavLink to="/polls" icon={FaHome}>Browse Polls</MobileNavLink>
+                  <MobileNavLink to="/dashboard" icon={FaChartBar}>Dashboard</MobileNavLink>
+                  <MobileNavLink to="/my-polls" icon={FaPoll}>My Polls</MobileNavLink>
+                  <MobileNavLink to="/create-poll" icon={FaPlus}>Create Poll</MobileNavLink>
+                  
+                  <div className="pt-4 border-t border-gray-800">
+                    <div className="flex items-center space-x-3 px-4 py-3 rounded-xl bg-gray-800/50">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+                        <FaUser className="text-white text-sm" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{currentUser?.username || 'User'}</p>
+                        <p className="text-gray-400 text-sm">{currentUser?.email}</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleLogout}
+                      className="w-full mt-4 btn-outline flex items-center justify-center space-x-2"
+                    >
+                      <FaSignOutAlt />
+                      <span>Logout</span>
+                    </motion.button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MobileNavLink to="/polls">Browse Polls</MobileNavLink>
+                  <a href="#features" className="mobile-nav-link">Features</a>
+                  <a href="#how-it-works" className="mobile-nav-link">How It Works</a>
+                  <a href="#categories" className="mobile-nav-link">Categories</a>
+                  
+                  <div className="pt-4 border-t border-gray-800 space-y-3">
+                    <Link to="/login" className="btn-outline w-full text-center block">
+                      Login
+                    </Link>
+                    <Link to="/signup" className="btn-primary w-full text-center block">
+                      Sign Up
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };
+
+// Desktop Navigation Link Component
+const NavLink = ({ to, icon: Icon, children, ...props }) => (
+  <Link
+    to={to}
+    className="nav-link flex items-center space-x-2 group"
+    {...props}
+  >
+    {Icon && <Icon className="text-sm group-hover:text-red-400 transition-colors" />}
+    <span>{children}</span>
+  </Link>
+);
+
+// Mobile Navigation Link Component  
+const MobileNavLink = ({ to, icon: Icon, children, ...props }) => (
+  <Link
+    to={to}
+    className="mobile-nav-link flex items-center space-x-3"
+    {...props}
+  >
+    {Icon && (
+      <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center">
+        <Icon className="text-gray-400 text-sm" />
+      </div>
+    )}
+    <span>{children}</span>
+  </Link>
+);
 
 export default Navbar;
