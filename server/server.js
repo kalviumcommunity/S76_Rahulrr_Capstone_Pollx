@@ -16,7 +16,8 @@ const requiredEnvVars = [
   'GOOGLE_CLIENT_ID',
   'GOOGLE_CLIENT_SECRET',
   'GOOGLE_CALLBACK_URL',
-  'SESSION_SECRET'
+  'SESSION_SECRET',
+  'GEMINI_API_KEY'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -44,6 +45,7 @@ const User = require('./models/User');
 
 const authRoutes = require('./routes/routes');
 const pollRoutes = require('./routes/pollRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const DatabaseWatcher = require('./services/DatabaseWatcher');
 
 const app = express();
@@ -149,6 +151,7 @@ app.use(passport.session());
 
 app.use('/auth', authRoutes);
 app.use('/polls', pollRoutes);
+app.use('/api', aiRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
