@@ -1,6 +1,5 @@
 import React from 'react';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import PollFeed from '../components/PollFeed';
 
 const PollsPage = () => {
@@ -8,7 +7,6 @@ const PollsPage = () => {
     <div className="min-h-screen flex flex-col bg-[#2B2B2B]">
       <Navbar />
       <PollFeed />
-      <Footer />
     </div>
   );
 };

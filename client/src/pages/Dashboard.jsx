@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnsweredPollCard from '../components/AnsweredPollCard';
 import socket from '../socket';
 import { getCurrentUser, logout, getVotedPolls } from '../api/auth';
@@ -245,8 +244,6 @@ const Dashboard = () => {
           )}
         </div>
       </main>
-      
-      <Footer />
     </div>
   );
 };

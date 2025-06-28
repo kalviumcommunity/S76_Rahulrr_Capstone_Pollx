@@ -6,7 +6,7 @@ import HowItWorksSection from '../components/HowItWorksSection';
 import CategoriesSection from '../components/CategoriesSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import CTASection from '../components/CTASection';
-import Footer from '../components/Footer';
+import MinimalFooter from '../components/MinimalFooter';
 
 const LandingPage = () => {
   return (
@@ -18,7 +18,7 @@ const LandingPage = () => {
       <CategoriesSection />
       <TestimonialsSection />
       <CTASection />
-      <Footer />
+      <MinimalFooter />
     </div>
   );
 };
