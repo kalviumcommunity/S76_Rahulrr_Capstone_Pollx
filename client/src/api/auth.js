@@ -320,3 +320,13 @@ export const toggleCommentHeart = async (pollId, commentId) => {
     throw error.response ? error.response.data : { message: error.message || 'Network error' };
   }
 };
+
+// Delete a poll
+export const deletePoll = async (pollId) => {
+  try {
+    const response = await api.delete(`/polls/${pollId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : { message: error.message || 'Network error' };
+  }
+};

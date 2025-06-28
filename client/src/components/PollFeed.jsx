@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import PollCard from './PollCard';
 import socket from '../socket';
+import { useToast } from '../context/ToastContext';
 import { FaPoll, FaSpinner, FaExclamationTriangle, FaFilter } from 'react-icons/fa';
 
 const PollFeed = () => {
@@ -10,6 +11,7 @@ const PollFeed = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const { showToast } = useToast();
 
   const API_URL = import.meta.env.PROD 
     ? 'https://s76-rahulrr-capstone-pollx.onrender.com'
@@ -52,11 +54,33 @@ const PollFeed = () => {
       }
     };
 
+    // Listen for poll deletions
+    const handlePollDeleted = (data) => {
+      console.log('Poll deleted:', data);
+      setPolls(prevPolls => prevPolls.filter(poll => poll._id !== data.pollId));
+      showToast('A poll was removed from the database', 'info');
+    };
+
+    // Listen for poll updates
+    const handlePollUpdated = (data) => {
+      console.log('Poll updated:', data);
+      setPolls(prevPolls => 
+        prevPolls.map(poll => 
+          poll._id === data.pollId ? data.poll : poll
+        )
+      );
+      showToast('A poll was updated', 'info');
+    };
+
     socket.on('pollCreated', handlePollCreated);
+    socket.on('pollDeleted', handlePollDeleted);
+    socket.on('pollUpdated', handlePollUpdated);
 
     // Cleanup listener on unmount
     return () => {
       socket.off('pollCreated', handlePollCreated);
+      socket.off('pollDeleted', handlePollDeleted);
+      socket.off('pollUpdated', handlePollUpdated);
     };
   }, [selectedCategory]);
 

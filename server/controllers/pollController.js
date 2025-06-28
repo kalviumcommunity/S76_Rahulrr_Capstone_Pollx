@@ -476,6 +476,61 @@ const toggleCommentHeart = async (req, res) => {
   }
 };
 
+// Delete a poll (admin or owner only)
+const deletePoll = async (req, res) => {
+  try {
+    const { pollId } = req.params;
+
+    // Find the poll
+    const poll = await Poll.findById(pollId);
+    if (!poll) {
+      return res.status(404).json({ 
+        error: 'Poll not found' 
+      });
+    }
+
+    // Check if user is the owner of the poll
+    if (poll.createdBy.toString() !== req.user.id) {
+      return res.status(403).json({ 
+        error: 'Access denied. You can only delete your own polls' 
+      });
+    }
+
+    // Delete the poll
+    await Poll.findByIdAndDelete(pollId);
+
+    // Emit real-time poll deletion to all connected clients
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('pollDeleted', {
+        pollId: pollId,
+        message: 'Poll was deleted by owner',
+        updatedAt: new Date()
+      });
+      console.log('Poll deletion broadcasted for poll:', poll.question);
+    }
+
+    res.json({
+      success: true,
+      message: 'Poll deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting poll:', error);
+    
+    // Handle invalid ObjectId format
+    if (error.name === 'CastError') {
+      return res.status(400).json({ 
+        error: 'Invalid poll ID format' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Internal server error' 
+    });
+  }
+};
+
 module.exports = {
   createPoll,
   getAllPolls,
@@ -484,5 +539,6 @@ module.exports = {
   votePoll,
   addComment,
   getComments,
-  toggleCommentHeart
+  toggleCommentHeart,
+  deletePoll
 };

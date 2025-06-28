@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
 
 // Load environment variables first - only load once
 require('dotenv').config();
@@ -43,6 +44,7 @@ const User = require('./models/User');
 
 const authRoutes = require('./routes/routes');
 const pollRoutes = require('./routes/pollRoutes');
+const DatabaseWatcher = require('./services/DatabaseWatcher');
 
 const app = express();
 const server = http.createServer(app);
@@ -197,6 +199,15 @@ io.on('connection', (socket) => {
 });
 
 connectDB();
+
+// Initialize database watcher after database connection
+mongoose.connection.once('open', () => {
+  console.log('✅ MongoDB connected successfully');
+  
+  // Initialize database change watcher
+  const dbWatcher = new DatabaseWatcher(io);
+  console.log('🔍 Database watcher initialized');
+});
 
 server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`)
