@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaShare, FaCopy, FaWhatsapp, FaTwitter, FaCheck } from 'react-icons/fa';
+import { FaShare, FaCopy, FaWhatsapp, FaTwitter, FaInstagram, FaCheck } from 'react-icons/fa';
 
 const ShareButton = ({ pollId, pollQuestion }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +27,12 @@ const ShareButton = ({ pollId, pollQuestion }) => {
       icon: FaTwitter,
       color: 'text-blue-500 hover:text-blue-400',
       action: () => shareToTwitter(pollUrl, pollQuestion)
+    },
+    {
+      name: 'Instagram',
+      icon: FaInstagram,
+      color: 'text-pink-500 hover:text-pink-400',
+      action: () => shareToInstagram(pollUrl, pollQuestion)
     }
   ];
 
@@ -59,6 +65,37 @@ const ShareButton = ({ pollId, pollQuestion }) => {
     window.open(twitterUrl, '_blank');
   };
 
+  const shareToInstagram = (url, question) => {
+    // Instagram doesn't have a direct URL sharing scheme like WhatsApp or Twitter
+    // We'll copy the content to clipboard and provide instructions
+    const text = `Check out this poll: "${question}" ${url}?src=instagram`;
+    
+    // Copy to clipboard first
+    copyToClipboard(text);
+    
+    // Try to detect if user is on mobile for better Instagram experience
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+      // On mobile, try to open Instagram app
+      const instagramUrl = `instagram://app`;
+      window.location.href = instagramUrl;
+      
+      // Fallback to Instagram web if app doesn't open
+      setTimeout(() => {
+        window.open('https://www.instagram.com/', '_blank');
+      }, 1000);
+    } else {
+      // On desktop, open Instagram web
+      window.open('https://www.instagram.com/', '_blank');
+    }
+    
+    // Show instruction with better UX
+    setTimeout(() => {
+      alert('📋 Poll link copied to clipboard!\n\nYou can now paste it in your Instagram story, post, or bio. Instagram will automatically detect and format the link.');
+    }, 800);
+  };
+
   return (
     <div className="relative">
       <motion.button
@@ -85,7 +122,7 @@ const ShareButton = ({ pollId, pollQuestion }) => {
             initial={{ opacity: 0, scale: 0.95, y: -10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            className="absolute bottom-full right-0 mb-2 bg-[#2B2B2B] border border-gray-600 rounded-lg shadow-xl z-20 min-w-[160px]"
+            className="absolute bottom-full right-0 mb-2 bg-[#2B2B2B] border border-gray-600 rounded-lg shadow-xl z-20 min-w-[180px]"
           >
             <div className="py-2">
               {shareOptions.map((option, index) => (
