@@ -185,15 +185,8 @@ const MyPolls = () => {
     }
   };
 
-  const handleEditPoll = (poll) => {
-    // TODO: Implement edit functionality
-    console.log('Edit poll:', poll);
-    // For now, just navigate to create poll page
-    navigate('/create-poll');
-  };
-
   const handleDeletePoll = async (poll) => {
-    if (!window.confirm('Are you sure you want to delete this poll?')) {
+    if (!window.confirm('Are you sure you want to delete this poll? This action cannot be undone.')) {
       return;
     }
 
@@ -362,7 +355,6 @@ const MyPolls = () => {
                   poll={poll} 
                   showActions={true}
                   disableVoting={true} // Disable voting on own polls
-                  onEdit={handleEditPoll}
                   onDelete={handleDeletePoll}
                   onVote={(updatedPoll) => {
                     // Update the poll in the list when a vote is cast

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FaUser, FaClock, FaEdit, FaTrash, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-icons/fa';
+import { FaUser, FaClock, FaVoteYea, FaCheck, FaSpinner, FaTag } from 'react-icons/fa';
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import CommentsSection from './CommentsSection';
 
-const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disableVoting = false }) => {
+const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
   const [voting, setVoting] = useState(false);
   const [votedOptionId, setVotedOptionId] = useState(null);
@@ -241,39 +241,25 @@ const PollCard = ({ poll, showActions = false, onEdit, onDelete, onVote, disable
           )}
         </div>
 
-        {/* Total Votes */}
-        <div className="text-[#FF2D2D] font-bold">
-          {getTotalVotes()} total votes
-        </div>
-      </div>
-
-      {/* Action Buttons for My Polls */}
-      {showActions && (
-        <div className="flex space-x-3 mt-4 pt-4 border-t border-gray-600">
-          {onEdit && (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onEdit(localPoll)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <FaEdit className="mr-2" />
-              Edit
-            </motion.button>
-          )}
-          {onDelete && (
+        {/* Total Votes and Delete Button */}
+        <div className="flex items-center space-x-4">
+          <div className="text-[#FF2D2D] font-bold">
+            {getTotalVotes()} total votes
+          </div>
+          
+          {/* Delete Button for My Polls */}
+          {showActions && onDelete && (
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => onDelete(localPoll)}
               className="flex items-center px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
             >
-              <FaTrash className="mr-2" />
               Delete
             </motion.button>
           )}
         </div>
-      )}
+      </div>
 
       {/* Comments Section */}
       <CommentsSection 
