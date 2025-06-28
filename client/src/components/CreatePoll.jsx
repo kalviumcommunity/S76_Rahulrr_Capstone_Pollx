@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaPoll, FaPlus, FaTimes, FaSpinner, FaClock } from 'react-icons/fa';
+import { FaPoll, FaPlus, FaTimes, FaSpinner, FaClock, FaRobot, FaMagic } from 'react-icons/fa';
 import axios from 'axios';
 import { EXPIRY_OPTIONS } from '../utils/pollExpiry';
 
@@ -34,6 +34,57 @@ const CreatePoll = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // AI generation state
+  const [aiTopic, setAiTopic] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showAiSection, setShowAiSection] = useState(false);
+
+  // Handle AI topic change
+  const handleAiTopicChange = (e) => {
+    setAiTopic(e.target.value);
+    // Clear messages when user starts typing
+    if (error) setError('');
+    if (success) setSuccess('');
+  };
+
+  // AI generation function
+  const generatePollWithAI = async () => {
+    if (!aiTopic.trim()) {
+      setError('Please enter a topic for AI generation');
+      return;
+    }
+
+    setIsGenerating(true);
+    setError('');
+
+    try {
+      const response = await api.post('/api/generate-poll', {
+        topic: aiTopic.trim()
+      });
+
+      if (response.data.success) {
+        // Populate the form with AI-generated content
+        setFormData(prev => ({
+          ...prev,
+          question: response.data.poll.question,
+          options: response.data.poll.options
+        }));
+        setSuccess('Poll generated successfully! You can edit it before creating.');
+        setShowAiSection(false);
+        setAiTopic('');
+      }
+    } catch (error) {
+      console.error('AI generation error:', error);
+      if (error.response?.status === 401) {
+        setError('Please log in to use AI generation');
+      } else {
+        setError(error.response?.data?.message || 'Failed to generate poll with AI. Please try again.');
+      }
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleQuestionChange = (e) => {
     setFormData({
@@ -185,6 +236,44 @@ const CreatePoll = () => {
               {error}
             </div>
           )}
+
+          {/* AI Generation Section */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-white flex items-center space-x-2 mb-4">
+              <FaRobot className="text-[#FF2D2D] text-2xl" />
+              <span>AI-Powered Poll Generation</span>
+            </h2>
+            <p className="text-gray-400 text-sm mb-4">
+              Let our AI suggest a poll based on a topic you provide. You can then customize the poll before creating it.
+            </p>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                placeholder="Enter a topic for AI to generate a poll"
+                className="flex-1 px-4 py-3 bg-black text-white border border-gray-700 rounded-lg focus:outline-none focus:border-[#FF2D2D] focus:ring-1 focus:ring-[#FF2D2D] transition-colors"
+                value={aiTopic}
+                onChange={handleAiTopicChange}
+                disabled={isGenerating || isLoading}
+              />
+              <button
+                onClick={generatePollWithAI}
+                className="px-4 py-3 bg-[#FF2D2D] text-white rounded-lg hover:bg-red-600 transition-colors flex items-center space-x-2"
+                disabled={isGenerating || isLoading}
+              >
+                {isGenerating ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaMagic />
+                    <span>Generate Poll</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">

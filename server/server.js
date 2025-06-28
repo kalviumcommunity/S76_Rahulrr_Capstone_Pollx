@@ -44,6 +44,7 @@ const User = require('./models/User');
 
 const authRoutes = require('./routes/routes');
 const pollRoutes = require('./routes/pollRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const DatabaseWatcher = require('./services/DatabaseWatcher');
 
 const app = express();
@@ -149,6 +150,7 @@ app.use(passport.session());
 
 app.use('/auth', authRoutes);
 app.use('/polls', pollRoutes);
+app.use('/api', aiRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
