@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaPoll, FaPlus, FaTimes, FaSpinner, FaClock, FaRobot, FaMagic } from 'react-icons/fa';
 import axios from 'axios';
@@ -38,15 +38,6 @@ const CreatePoll = () => {
   // AI generation state
   const [aiTopic, setAiTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // Cleanup function for component unmount
-  useEffect(() => {
-    return () => {
-      // Clear any ongoing AI generation state
-      setIsGenerating(false);
-      setAiTopic('');
-    };
-  }, []);
 
   // Handle AI topic change
   const handleAiTopicChange = (e) => {
