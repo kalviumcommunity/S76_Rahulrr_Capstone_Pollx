@@ -5,6 +5,7 @@ import axios from 'axios';
 import PollCard from './PollCard';
 import socket from '../socket';
 import { useToast } from '../context/ToastContext';
+import { deletePoll } from '../api/auth';
 import { FaPoll, FaSpinner, FaPlus, FaExclamationTriangle } from 'react-icons/fa';
 
 const MyPolls = () => {
@@ -197,18 +198,15 @@ const MyPolls = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/polls/${poll._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await deletePoll(poll._id);
       
       // Remove the poll from the list
       setPolls(polls.filter(p => p._id !== poll._id));
+      showToast('Poll deleted successfully!', 'success');
     } catch (error) {
       console.error('Error deleting poll:', error);
-      alert('Failed to delete poll. Please try again.');
+      const errorMessage = error.error || error.message || 'Failed to delete poll. Please try again.';
+      showToast(errorMessage, 'error');
     }
   };
 

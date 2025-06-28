@@ -480,24 +480,34 @@ const toggleCommentHeart = async (req, res) => {
 const deletePoll = async (req, res) => {
   try {
     const { pollId } = req.params;
+    console.log('Delete poll request for ID:', pollId);
+    console.log('Requesting user:', req.user);
 
     // Find the poll
     const poll = await Poll.findById(pollId);
     if (!poll) {
+      console.log('Poll not found for ID:', pollId);
       return res.status(404).json({ 
         error: 'Poll not found' 
       });
     }
 
+    console.log('Poll found, created by:', poll.createdBy.toString());
+    console.log('Current user ID:', req.user.id.toString());
+
     // Check if user is the owner of the poll
-    if (poll.createdBy.toString() !== req.user.id) {
+    if (poll.createdBy.toString() !== req.user.id.toString()) {
+      console.log('Access denied - user is not the owner');
       return res.status(403).json({ 
         error: 'Access denied. You can only delete your own polls' 
       });
     }
 
+    console.log('User authorized to delete poll');
+
     // Delete the poll
     await Poll.findByIdAndDelete(pollId);
+    console.log('Poll deleted successfully');
 
     // Emit real-time poll deletion to all connected clients
     const io = req.app.get('io');
