@@ -12,6 +12,9 @@ const PollFeed = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [showLiveNotifications, setShowLiveNotifications] = useState(
+    localStorage.getItem('showLiveNotifications') !== 'false' // Default to true
+  );
   const [searchParams] = useSearchParams();
   const { showToast } = useToast();
 
@@ -19,8 +22,21 @@ const PollFeed = () => {
     ? 'https://s76-rahulrr-capstone-pollx.onrender.com'
     : 'http://localhost:5000';
 
-  const categories = ['All', 'Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'];
+  const categories = ['All', 'Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Science', 'Travel', 'Dating', 'Food & Dining', 'Fashion', 'Other'];
   const highlightPollId = searchParams.get('highlight');
+
+  // Toggle live notifications function
+  const toggleLiveNotifications = () => {
+    const newState = !showLiveNotifications;
+    setShowLiveNotifications(newState);
+    localStorage.setItem('showLiveNotifications', newState.toString());
+    
+    if (newState) {
+      showToast('🔔 Live notifications enabled!', 'success');
+    } else {
+      showToast('🔕 Live notifications disabled', 'info');
+    }
+  };
 
   useEffect(() => {
     fetchPolls();
@@ -89,7 +105,20 @@ const PollFeed = () => {
           poll._id === data.pollId ? data.poll : poll
         )
       );
-      showToast('A poll was updated', 'info');
+      
+      // Only show notifications if user has them enabled
+      if (showLiveNotifications) {
+        // More engaging and varied messages
+        const messages = [
+          `🗳️ "${data.pollTitle}" just got a new vote!`,
+          '📊 Live vote update!',
+          '🔥 Someone just voted!',
+          '⚡ Poll activity happening now!',
+          '👥 Community is voting!'
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        showToast(randomMessage, 'info');
+      }
     };
 
     socket.on('pollCreated', handlePollCreated);
@@ -251,6 +280,18 @@ const PollFeed = () => {
             <span className="text-gray-500">
               {polls.length} {polls.length === 1 ? 'poll' : 'polls'} available
             </span>
+            <button
+              onClick={toggleLiveNotifications}
+              className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                showLiveNotifications 
+                  ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
+                  : 'bg-gray-600/20 text-gray-400 border border-gray-600/30'
+              }`}
+              title={showLiveNotifications ? 'Disable live notifications' : 'Enable live notifications'}
+            >
+              <span>{showLiveNotifications ? '🔔' : '🔕'}</span>
+              <span>{showLiveNotifications ? 'Live Updates ON' : 'Live Updates OFF'}</span>
+            </button>
             {polls.length > 0 && (
               <span className="text-gray-500">
                 • Updated just now

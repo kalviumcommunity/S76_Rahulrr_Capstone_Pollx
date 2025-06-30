@@ -316,6 +316,11 @@ const CreatePoll = () => {
                 <option value="Education">Education</option>
                 <option value="Health">Health</option>
                 <option value="Business">Business</option>
+                <option value="Science">Science</option>
+                <option value="Travel">Travel</option>
+                <option value="Dating">Dating</option>
+                <option value="Food & Dining">Food & Dining</option>
+                <option value="Fashion">Fashion</option>
                 <option value="Other">Other</option>
               </select>
             </div>

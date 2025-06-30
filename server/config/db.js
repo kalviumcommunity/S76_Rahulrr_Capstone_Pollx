@@ -7,12 +7,9 @@ const connectDB = async () => {
         // Production-safe logging
         const isProduction = process.env.NODE_ENV === 'production';
         
-        // Connection options for older Mongoose version (5.x)
+        // Modern connection options for Mongoose 5.x
+        // Removed deprecated options: useNewUrlParser, useUnifiedTopology, useCreateIndex, useFindAndModify
         const options = {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            useCreateIndex: true,
-            useFindAndModify: false,
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,

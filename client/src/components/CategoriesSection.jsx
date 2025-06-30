@@ -27,7 +27,11 @@ const CategoriesSection = () => {
     { name: "Food & Dining", count: "689" },
     { name: "Fashion", count: "583" },
     { name: "Travel", count: "521" },
-    { name: "Science", count: "478" }
+    { name: "Science", count: "478" },
+    { name: "Dating", count: "342" },
+    { name: "Health", count: "298" },
+    { name: "Education", count: "267" },
+    { name: "Business", count: "189" }
   ];
 
   return (

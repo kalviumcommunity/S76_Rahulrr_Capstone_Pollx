@@ -15,6 +15,23 @@ router.get('/my-polls', ensureAuth, getUserPolls);
 // GET /polls/voted - Get polls that authenticated user has voted on (protected route)
 router.get('/voted', ensureAuth, getVotedPolls);
 
+// GET /polls/:pollId - Get a single poll by ID (public route)
+router.get('/:pollId', async (req, res) => {
+  try {
+    const Poll = require('../models/Poll');
+    const poll = await Poll.findById(req.params.pollId).populate('createdBy', 'username profilePicture');
+    
+    if (!poll) {
+      return res.status(404).json({ error: 'Poll not found' });
+    }
+    
+    res.json({ poll });
+  } catch (error) {
+    console.error('Error fetching poll:', error);
+    res.status(500).json({ error: 'Failed to fetch poll' });
+  }
+});
+
 // POST /polls/:pollId/vote - Vote on a poll (protected route)
 router.post('/:pollId/vote', ensureAuth, votePoll);
 

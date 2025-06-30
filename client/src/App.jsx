@@ -8,6 +8,7 @@ import AuthSuccessPage from './pages/AuthSuccessPage';
 import PollsPage from './pages/PollsPage';
 import MyPollsPage from './pages/MyPollsPage';
 import CreatePollPage from './pages/CreatePollPage';
+import IndividualPollPage from './pages/IndividualPollPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
@@ -31,6 +32,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/polls" element={<PollsPage />} />
+            <Route path="/poll/:pollId" element={<IndividualPollPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/auth-success" element={<AuthSuccessPage />} />

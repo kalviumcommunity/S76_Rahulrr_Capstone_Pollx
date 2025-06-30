@@ -1,18 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FaUser, FaClock, FaCheck, FaTag } from 'react-icons/fa';
+import { formatSocialTimestamp, formatDetailedTimestamp } from '../utils/timeUtils';
 import CommentsSection from './CommentsSection';
 
 const AnsweredPollCard = ({ poll }) => {
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return formatSocialTimestamp(dateString);
   };
 
   const getTotalVotes = () => {
@@ -67,68 +61,97 @@ const AnsweredPollCard = ({ poll }) => {
           </div>
         </div>
         <div className="text-xs text-gray-400 whitespace-nowrap">
-          {formatDate(poll.createdAt)}
+          <span 
+            className="cursor-help" 
+            title={formatDetailedTimestamp(poll.createdAt)}
+          >
+            {formatDate(poll.createdAt)}
+          </span>
         </div>
       </div>
       
-      {/* Your Vote (if available) */}
-      {votedOption && (
-        <div className="mb-3 p-2 bg-green-900/20 border border-green-800 rounded-md">
-          <div className="flex items-center text-green-400 text-sm">
-            <FaCheck className="mr-2" />
-            <span>You voted for: <strong>"{votedOption.text}"</strong></span>
-          </div>
-        </div>
-      )}
-      
       {/* Poll Metadata */}
-      <div className="flex items-center justify-between text-sm text-gray-400">
+      <div className="flex items-center justify-between text-sm text-gray-400 mb-3">
         <div className="flex items-center space-x-4">
           {poll.createdBy && (
             <div className="flex items-center space-x-2">
-              <FaUser className="text-xs text-[#FF2D2D]" />
+              <FaUser className="text-xs text-red-400" />
               <span>{poll.createdBy.username || poll.createdBy.email || 'Anonymous'}</span>
             </div>
           )}
         </div>
         
-        <div className="text-[#FF2D2D] font-medium">
+        <div className="text-red-400 font-medium">
           {getTotalVotes()} total votes
         </div>
       </div>
       
-      {/* Show options with vote counts (compact view) */}
-      <div className="mt-3 space-y-1">
+      {/* Show options with vote counts (enhanced view) */}
+      <div className="space-y-2">
         {poll.options?.map((option, optionIndex) => {
           const isVotedOption = votedOption && votedOption._id === option._id;
           const percentage = getTotalVotes() > 0 ? ((option.votes || 0) / getTotalVotes()) * 100 : 0;
           
           return (
-            <div key={optionIndex} className="bg-gray-800 rounded-md p-2 text-sm">
-              <div className="flex justify-between items-center mb-1">
-                <span className={`text-gray-200 ${isVotedOption ? 'font-medium' : ''}`}>
-                  {isVotedOption && <FaCheck className="inline mr-1 text-green-400" />}
+            <motion.div 
+              key={optionIndex} 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: optionIndex * 0.1 }}
+              className={`rounded-lg p-3 text-sm transition-all duration-300 ${
+                isVotedOption 
+                  ? 'bg-gradient-to-r from-green-900/30 to-green-800/20 border border-green-600/50 shadow-lg shadow-green-500/10' 
+                  : 'bg-gray-800/70 border border-gray-700/50'
+              }`}
+            >
+              <div className="flex justify-between items-center mb-2">
+                <span className={`flex items-center ${isVotedOption ? 'text-green-100 font-semibold' : 'text-gray-200'}`}>
+                  {isVotedOption && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", stiffness: 500 }}
+                    >
+                      <FaCheck className="inline mr-2 text-green-400 text-sm" />
+                    </motion.div>
+                  )}
                   {option.text}
                 </span>
-                <span className="text-[#FF2D2D] font-medium">{option.votes || 0} votes</span>
+                <span className={`font-bold text-sm ${isVotedOption ? 'text-green-400' : 'text-red-400'}`}>
+                  {option.votes || 0}
+                </span>
               </div>
               
-              {/* Mini progress bar */}
-              <div className="w-full bg-gray-700 rounded-full h-1">
-                <div 
-                  className={`h-1 rounded-full transition-all duration-300 ${
+              {/* Enhanced progress bar */}
+              <div className="w-full bg-gray-700/50 rounded-full h-2 mb-1 overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${percentage}%` }}
+                  transition={{ delay: optionIndex * 0.1 + 0.3, duration: 0.8, ease: "easeOut" }}
+                  className={`h-2 rounded-full ${
                     isVotedOption 
-                      ? 'bg-gradient-to-r from-green-400 to-green-600' 
-                      : 'bg-gradient-to-r from-[#FF2D2D] to-red-600'
+                      ? 'bg-gradient-to-r from-green-400 via-green-500 to-green-600 shadow-sm' 
+                      : 'bg-gradient-to-r from-red-400 via-red-500 to-red-600'
                   }`}
-                  style={{ width: `${percentage}%` }}
-                ></div>
+                ></motion.div>
               </div>
               
-              <div className="text-xs text-gray-500 mt-1">
-                {percentage.toFixed(1)}%
+              <div className="flex justify-between items-center">
+                <div className={`text-xs font-medium ${isVotedOption ? 'text-green-400' : 'text-gray-500'}`}>
+                  {percentage.toFixed(1)}%
+                </div>
+                {isVotedOption && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-xs text-green-400 font-medium px-2 py-0.5 bg-green-900/30 rounded-full border border-green-600/30"
+                  >
+                    Your Choice
+                  </motion.div>
+                )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

@@ -104,7 +104,8 @@ class DatabaseWatcher {
           pollId: poll._id,
           poll: poll,
           totalVotes: totalVotes,
-          message: 'Poll updated (database)',
+          updateType: 'vote', // This helps frontend distinguish types of updates
+          pollTitle: poll.question.substring(0, 50) + (poll.question.length > 50 ? '...' : ''),
           updatedAt: new Date()
         });
         console.log('📡 Poll update broadcasted via change stream');

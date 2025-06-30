@@ -26,7 +26,7 @@ const createPoll = async (req, res) => {
     }
 
     // Validate category
-    const validCategories = ['Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'];
+    const validCategories = ['Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Science', 'Travel', 'Dating', 'Food & Dining', 'Fashion', 'Other'];
     if (category && !validCategories.includes(category)) {
       return res.status(400).json({ 
         error: 'Invalid category' 
@@ -141,6 +141,12 @@ const getAllPolls = async (req, res) => {
 // Get polls created by the authenticated user
 const getUserPolls = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'User not authenticated' 
+      });
+    }
+
     const polls = await Poll.find({ createdBy: req.user.id })
       .populate('createdBy', 'username email')
       .populate('comments.commentedBy', 'username email')
@@ -153,7 +159,7 @@ const getUserPolls = async (req, res) => {
   } catch (error) {
     console.error('Error fetching user polls:', error);
     res.status(500).json({ 
-      error: 'Internal server error' 
+      error: 'Failed to fetch user polls' 
     });
   }
 };
@@ -161,6 +167,12 @@ const getUserPolls = async (req, res) => {
 // Get polls that the authenticated user has voted on
 const getVotedPolls = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'User not authenticated' 
+      });
+    }
+
     const polls = await Poll.find({ votedUsers: req.user.id })
       .populate('createdBy', 'username email')
       .populate('comments.commentedBy', 'username email')
@@ -173,7 +185,7 @@ const getVotedPolls = async (req, res) => {
   } catch (error) {
     console.error('Error fetching voted polls:', error);
     res.status(500).json({ 
-      error: 'Internal server error' 
+      error: 'Failed to fetch voted polls' 
     });
   }
 };

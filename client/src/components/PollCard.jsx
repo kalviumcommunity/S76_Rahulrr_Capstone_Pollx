@@ -3,12 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaUser, FaClock, FaVoteYea, FaCheck, FaSpinner, FaTag, 
   FaFire, FaChartBar, FaShare, FaLink, FaTrash, FaEllipsisV,
-  FaHeart, FaComment, FaWhatsapp, FaTwitter
+  FaHeart, FaComment, FaWhatsapp, FaTwitter, FaInstagram, FaLinkedin
 } from 'react-icons/fa';
 import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import CommentsSection from './CommentsSection';
 import { isExpired, getTimeRemaining } from '../utils/pollExpiry';
+import { formatSocialTimestamp, formatDetailedTimestamp } from '../utils/timeUtils';
 
 const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
@@ -82,6 +83,7 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
   const handleShare = (platform) => {
     const pollUrl = `${window.location.origin}/poll/${poll._id}?src=${platform}`;
     const text = `Check out this poll: "${poll.question}"`;
+    const hashtagText = `#PollX #Poll #Vote ${poll.category ? `#${poll.category.replace(/\s+/g, '')}` : ''}`;
     
     switch (platform) {
       case 'copy':
@@ -92,7 +94,15 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
         window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${pollUrl}`)}`, '_blank');
         break;
       case 'twitter':
-        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pollUrl)}`, '_blank');
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${text} ${hashtagText}`)}&url=${encodeURIComponent(pollUrl)}`, '_blank');
+        break;
+      case 'instagram':
+        // Instagram doesn't support direct URL sharing, so we copy the link and show instructions
+        navigator.clipboard.writeText(`${text} ${pollUrl} ${hashtagText}`);
+        alert('Poll text copied! Paste it in your Instagram story or post.');
+        break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pollUrl)}&title=${encodeURIComponent(text)}&summary=${encodeURIComponent(`Vote on this interesting poll: ${poll.question}`)}`, '_blank');
         break;
       case 'native':
         if (navigator.share) {
@@ -113,13 +123,7 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
+    return formatSocialTimestamp(dateString);
   };
 
   const getCategoryBadge = () => {
@@ -321,7 +325,12 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
           
           <div className="flex items-center space-x-1">
             <FaClock className="text-xs" />
-            <span>{formatDate(localPoll.createdAt)}</span>
+            <span 
+              className="cursor-help" 
+              title={formatDetailedTimestamp(localPoll.createdAt)}
+            >
+              {formatDate(localPoll.createdAt)}
+            </span>
           </div>
         </div>
         
@@ -399,6 +408,22 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
                 >
                   <FaTwitter className="text-lg text-blue-400" />
                   <span>Share on Twitter</span>
+                </button>
+                
+                <button
+                  onClick={() => handleShare('instagram')}
+                  className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                >
+                  <FaInstagram className="text-lg text-pink-500" />
+                  <span>Share on Instagram</span>
+                </button>
+                
+                <button
+                  onClick={() => handleShare('linkedin')}
+                  className="w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+                >
+                  <FaLinkedin className="text-lg text-blue-600" />
+                  <span>Share on LinkedIn</span>
                 </button>
                 
                 {navigator.share && (
