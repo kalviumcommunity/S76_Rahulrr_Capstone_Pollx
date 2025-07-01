@@ -60,7 +60,7 @@ const pollSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Other'],
+    enum: ['Technology', 'Sports', 'Entertainment', 'Politics', 'Education', 'Health', 'Business', 'Science', 'Travel', 'Dating', 'Food & Dining', 'Fashion', 'Other'],
     default: 'Other'
   },
   votedUsers: [{ 
