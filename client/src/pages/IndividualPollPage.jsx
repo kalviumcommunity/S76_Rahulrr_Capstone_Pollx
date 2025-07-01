@@ -5,7 +5,6 @@ import { FaArrowLeft, FaShare, FaUsers, FaClock, FaExclamationTriangle } from 'r
 import PollCard from '../components/PollCard';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { formatSocialTimestamp, formatDetailedTimestamp } from '../utils/timeUtils';
 
 const IndividualPollPage = () => {
   const { pollId } = useParams();
@@ -190,11 +189,8 @@ const IndividualPollPage = () => {
             
             <div className="bg-gray-800/50 rounded-xl p-6 text-center">
               <FaClock className="text-3xl text-green-400 mx-auto mb-3" />
-              <div 
-                className="text-2xl font-bold text-white cursor-help"
-                title={formatDetailedTimestamp(poll.createdAt)}
-              >
-                {formatSocialTimestamp(poll.createdAt)}
+              <div className="text-2xl font-bold text-white">
+                {new Date(poll.createdAt).toLocaleDateString()}
               </div>
               <div className="text-gray-400">Created</div>
             </div>

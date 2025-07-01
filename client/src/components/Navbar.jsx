@@ -1,46 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaPoll, FaUser, FaSignOutAlt, FaBars, FaTimes, FaPlus, FaHome, FaChartBar, FaChevronDown, FaCog } from 'react-icons/fa';
+import { FaPoll, FaUser, FaSignOutAlt, FaBars, FaTimes, FaPlus, FaHome, FaChartBar } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isLoggedIn, currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const userMenuRef = useRef(null);
   
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
-    // Close user menu when mobile menu opens
-    if (!isMenuOpen) {
-      setIsUserMenuOpen(false);
-    }
   };
-
-  const toggleUserMenu = () => {
-    setIsUserMenuOpen(!isUserMenuOpen);
-  };
-
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
   
   const handleLogout = async () => {
     try {
       await logout();
-      setIsUserMenuOpen(false);
       navigate('/login');
     } catch (err) {
       console.error('Logout error:', err);
@@ -95,71 +70,25 @@ const Navbar = () => {
           {/* Desktop User Actions */}
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
-              <div className="relative" ref={userMenuRef}>
-                {/* User Menu Trigger */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={toggleUserMenu}
-                  className="flex items-center space-x-3 px-4 py-2 rounded-xl bg-gray-800/50 border border-gray-700 hover:border-gray-600 transition-all duration-200"
-                >
+              <div className="flex items-center space-x-4">
+                {/* User Avatar */}
+                <div className="flex items-center space-x-3 px-3 py-2 rounded-xl bg-gray-800/50 border border-gray-700">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
                     <FaUser className="text-white text-xs" />
                   </div>
                   <span className="text-gray-300 font-medium">
                     {currentUser?.username || 'User'}
                   </span>
-                  <motion.div
-                    animate={{ rotate: isUserMenuOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <FaChevronDown className="text-gray-400 text-xs" />
-                  </motion.div>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="btn-outline flex items-center space-x-2"
+                >
+                  <FaSignOutAlt className="text-sm" />
+                  <span>Logout</span>
                 </motion.button>
-
-                {/* User Dropdown Menu */}
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute right-0 mt-2 w-56 bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-xl shadow-xl z-50"
-                    >
-                      <div className="py-2">
-                        {/* User Info */}
-                        <div className="px-4 py-3 border-b border-gray-700">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
-                              <FaUser className="text-white text-sm" />
-                            </div>
-                            <div>
-                              <p className="text-white font-medium text-sm">
-                                {currentUser?.username || 'User'}
-                              </p>
-                              <p className="text-gray-400 text-xs">
-                                {currentUser?.email || 'user@example.com'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Menu Items */}
-                        <div className="py-1">
-                          <motion.button
-                            whileHover={{ backgroundColor: 'rgba(55, 65, 81, 0.5)' }}
-                            onClick={handleLogout}
-                            className="w-full flex items-center space-x-3 px-4 py-2 text-left text-gray-300 hover:text-white transition-colors"
-                          >
-                            <FaSignOutAlt className="text-sm text-gray-400" />
-                            <span className="text-sm">Logout</span>
-                          </motion.button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             ) : (
               <div className="flex items-center space-x-4">

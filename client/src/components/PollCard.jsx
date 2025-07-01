@@ -9,7 +9,6 @@ import { votePoll } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import CommentsSection from './CommentsSection';
 import { isExpired, getTimeRemaining } from '../utils/pollExpiry';
-import { formatSocialTimestamp, formatDetailedTimestamp } from '../utils/timeUtils';
 
 const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting = false }) => {
   const { isLoggedIn } = useAuth();
@@ -123,7 +122,13 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
   };
 
   const formatDate = (dateString) => {
-    return formatSocialTimestamp(dateString);
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
   };
 
   const getCategoryBadge = () => {
@@ -325,12 +330,7 @@ const PollCard = ({ poll, showActions = false, onDelete, onVote, disableVoting =
           
           <div className="flex items-center space-x-1">
             <FaClock className="text-xs" />
-            <span 
-              className="cursor-help" 
-              title={formatDetailedTimestamp(localPoll.createdAt)}
-            >
-              {formatDate(localPoll.createdAt)}
-            </span>
+            <span>{formatDate(localPoll.createdAt)}</span>
           </div>
         </div>
         
